@@ -174,7 +174,7 @@ void RosVisualizer::visualize_odometry(double timestamp) {
   // Our odometry message
   nav_msgs::Odometry odomIinM;
   odomIinM.header.stamp = ros::Time(timestamp);
-  odomIinM.header.frame_id = "map";
+  odomIinM.header.frame_id = "world";
 
   // The POSE component (orientation and position)
   odomIinM.pose.pose.orientation.x = state_plus(0);
@@ -290,7 +290,7 @@ void RosVisualizer::publish_state() {
   geometry_msgs::PoseWithCovarianceStamped poseIinM;
   poseIinM.header.stamp = ros::Time(timestamp_inI);
   poseIinM.header.seq = poses_seq_imu;
-  poseIinM.header.frame_id = "map";
+  poseIinM.header.frame_id = "world";
   poseIinM.pose.pose.orientation.x = state->_imu->quat()(0);
   poseIinM.pose.pose.orientation.y = state->_imu->quat()(1);
   poseIinM.pose.pose.orientation.z = state->_imu->quat()(2);
@@ -326,7 +326,7 @@ void RosVisualizer::publish_state() {
   nav_msgs::Path arrIMU;
   arrIMU.header.stamp = ros::Time::now();
   arrIMU.header.seq = poses_seq_imu;
-  arrIMU.header.frame_id = "map";
+  arrIMU.header.frame_id = "world";
   for (size_t i = 0; i < poses_imu.size(); i += std::floor(poses_imu.size() / 16384.0) + 1) {
     arrIMU.poses.push_back(poses_imu.at(i));
   }
@@ -340,7 +340,7 @@ void RosVisualizer::publish_state() {
   // NOTE: a rotation from GtoI in JPL has the same xyzw as a ItoG Hamilton rotation
   tf::StampedTransform trans;
   trans.stamp_ = ros::Time::now();
-  trans.frame_id_ = "map";
+  trans.frame_id_ = "world";
   trans.child_frame_id_ = "imu";
   tf::Quaternion quat(state->_imu->quat()(0), state->_imu->quat()(1), state->_imu->quat()(2), state->_imu->quat()(3));
   trans.setRotation(quat);
@@ -402,7 +402,7 @@ void RosVisualizer::publish_features() {
 
   // Declare message and sizes
   sensor_msgs::PointCloud2 cloud;
-  cloud.header.frame_id = "map";
+  cloud.header.frame_id = "world";
   cloud.header.stamp = ros::Time::now();
   cloud.width = 3 * feats_msckf.size();
   cloud.height = 1;
@@ -440,7 +440,7 @@ void RosVisualizer::publish_features() {
 
   // Declare message and sizes
   sensor_msgs::PointCloud2 cloud_SLAM;
-  cloud_SLAM.header.frame_id = "map";
+  cloud_SLAM.header.frame_id = "world";
   cloud_SLAM.header.stamp = ros::Time::now();
   cloud_SLAM.width = 3 * feats_slam.size();
   cloud_SLAM.height = 1;
@@ -478,7 +478,7 @@ void RosVisualizer::publish_features() {
 
   // Declare message and sizes
   sensor_msgs::PointCloud2 cloud_ARUCO;
-  cloud_ARUCO.header.frame_id = "map";
+  cloud_ARUCO.header.frame_id = "world";
   cloud_ARUCO.header.stamp = ros::Time::now();
   cloud_ARUCO.width = 3 * feats_aruco.size();
   cloud_ARUCO.height = 1;
@@ -520,7 +520,7 @@ void RosVisualizer::publish_features() {
 
   // Declare message and sizes
   sensor_msgs::PointCloud2 cloud_SIM;
-  cloud_SIM.header.frame_id = "map";
+  cloud_SIM.header.frame_id = "world";
   cloud_SIM.header.stamp = ros::Time::now();
   cloud_SIM.width = 3 * feats_sim.size();
   cloud_SIM.height = 1;
@@ -581,7 +581,7 @@ void RosVisualizer::publish_groundtruth() {
   geometry_msgs::PoseStamped poseIinM;
   poseIinM.header.stamp = ros::Time(timestamp_inI);
   poseIinM.header.seq = poses_seq_gt;
-  poseIinM.header.frame_id = "map";
+  poseIinM.header.frame_id = "world";
   poseIinM.pose.orientation.x = state_gt(1, 0);
   poseIinM.pose.orientation.y = state_gt(2, 0);
   poseIinM.pose.orientation.z = state_gt(3, 0);
@@ -600,7 +600,7 @@ void RosVisualizer::publish_groundtruth() {
   nav_msgs::Path arrIMU;
   arrIMU.header.stamp = ros::Time::now();
   arrIMU.header.seq = poses_seq_gt;
-  arrIMU.header.frame_id = "map";
+  arrIMU.header.frame_id = "world";
   for (size_t i = 0; i < poses_gt.size(); i += std::floor(poses_gt.size() / 16384.0) + 1) {
     arrIMU.poses.push_back(poses_gt.at(i));
   }
@@ -612,7 +612,7 @@ void RosVisualizer::publish_groundtruth() {
   // Publish our transform on TF
   tf::StampedTransform trans;
   trans.stamp_ = ros::Time::now();
-  trans.frame_id_ = "map";
+  trans.frame_id_ = "world";
   trans.child_frame_id_ = "truth";
   tf::Quaternion quat(state_gt(1, 0), state_gt(2, 0), state_gt(3, 0), state_gt(4, 0));
   trans.setRotation(quat);
@@ -701,7 +701,7 @@ void RosVisualizer::publish_loopclosure_information() {
     // PUBLISH HISTORICAL POSE ESTIMATE
     nav_msgs::Odometry odometry_pose;
     odometry_pose.header = header;
-    odometry_pose.header.frame_id = "map";
+    odometry_pose.header.frame_id = "world";
     odometry_pose.pose.pose.position.x = _app->get_state()->_clones_IMU.at(active_tracks_time1)->pos()(0);
     odometry_pose.pose.pose.position.y = _app->get_state()->_clones_IMU.at(active_tracks_time1)->pos()(1);
     odometry_pose.pose.pose.position.z = _app->get_state()->_clones_IMU.at(active_tracks_time1)->pos()(2);
@@ -745,7 +745,7 @@ void RosVisualizer::publish_loopclosure_information() {
     // Construct the message
     sensor_msgs::PointCloud point_cloud;
     point_cloud.header = header;
-    point_cloud.header.frame_id = "map";
+    point_cloud.header.frame_id = "world";
     for (const auto &feattimes : active_tracks_posinG) {
 
       // Get this feature information
