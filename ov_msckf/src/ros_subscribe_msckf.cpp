@@ -47,11 +47,12 @@ std::shared_ptr<RosVisualizer> viz;
 
 // Callback functions
 void callback_inertial(const sensor_msgs::Imu::ConstPtr &msg);
-void callback_monocular(const sensor_msgs::ImageConstPtr &msg0, int cam_id0);
+void callback_monocular(const sensor_msgs::ImageConstPtr &msg0, int cam_id0, const cv::Mat mask_image);
 void callback_stereo(const sensor_msgs::ImageConstPtr &msg0, const sensor_msgs::ImageConstPtr &msg1, int cam_id0, int cam_id1);
 
 // Main function
 int main(int argc, char **argv) {
+  cv::Mat mask_image = cv::imread("/home/mrs/fisheye_mask_752x480.jpg",0);
 
   // Launch our ros node
   ros::init(argc, argv, "run_subscribe_msckf");
@@ -112,7 +113,7 @@ int main(int argc, char **argv) {
     std::string cam_topic;
     nh.param<std::string>("topic_camera" + std::to_string(i), cam_topic, "/cam" + std::to_string(i) + "/image_raw");
     // create subscriber
-    subs_cam.push_back(nh.subscribe<sensor_msgs::Image>(cam_topic, 5, boost::bind(callback_monocular, _1, i)));
+    subs_cam.push_back(nh.subscribe<sensor_msgs::Image>(cam_topic, 5, boost::bind(callback_monocular, _1, i, mask_image)));
     ROS_INFO("subscribing to cam (mono): %s", cam_topic.c_str());
   }
 
@@ -147,7 +148,7 @@ void callback_inertial(const sensor_msgs::Imu::ConstPtr &msg) {
   viz->visualize_odometry(message.timestamp);
 }
 
-void callback_monocular(const sensor_msgs::ImageConstPtr &msg0, int cam_id0) {
+void callback_monocular(const sensor_msgs::ImageConstPtr &msg0, int cam_id0, const cv::Mat mask_image) {
 
   // Get the image
   cv_bridge::CvImageConstPtr cv_ptr;
@@ -161,8 +162,10 @@ void callback_monocular(const sensor_msgs::ImageConstPtr &msg0, int cam_id0) {
   // Create the measurement
   ov_core::CameraData message;
   message.timestamp = cv_ptr->header.stamp.toSec();
-  message.sensor_ids.push_back(cam_id0);
-  message.images.push_back(cv_ptr->image.clone());
+  message.sensor_ids.push_back(cam_id0);  
+  cv::Mat masked_image;
+  cv_ptr->image.copyTo(masked_image, mask_image);
+  message.images.push_back(masked_image.clone());
 
   // send it to our VIO system
   sys->feed_measurement_camera(message);
