@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include <cmath>
 #include <csignal>
 #include <deque>
@@ -30,14 +29,13 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 
-#ifdef ROS_AVAILABLE
+#if ROS_AVAILABLE == 1
 #include <ros/ros.h>
 #endif
 
 #include "core/VioManagerOptions.h"
 #include "sim/Simulator.h"
-#include "utils/parse_cmd.h"
-#include "utils/parse_ros.h"
+#include "utils/print.h"
 
 using namespace ov_msckf;
 
@@ -50,18 +48,37 @@ int main(int argc, char **argv) {
   // Register failure handler
   signal(SIGINT, signal_callback_handler);
 
+  // Ensure we have a path, if the user passes it then we should use it
+  std::string config_path = "unset_path_to_config.yaml";
+  if (argc > 1) {
+    config_path = argv[1];
+  }
+
+#if ROS_AVAILABLE == 1
+  // Launch our ros node
+  ros::init(argc, argv, "test_sim_repeat");
+  auto nh = std::make_shared<ros::NodeHandle>("~");
+  nh->param<std::string>("config_path", config_path, config_path);
+#endif
+
+  // Load the config
+  auto parser = std::make_shared<ov_core::YamlParser>(config_path);
+#if ROS_AVAILABLE == 1
+  parser->set_node_handler(nh);
+#endif
+
+  // Verbosity
+  std::string verbosity = "INFO";
+  parser->parse_config("verbosity", verbosity);
+  ov_core::Printer::setPrintLevel(verbosity);
+
   //===================================================
   //===================================================
 
   // Create the simulator
   VioManagerOptions params1;
-#ifdef ROS_AVAILABLE
-  ros::init(argc, argv, "test_sim_repeat");
-  ros::NodeHandle nh1("~");
-  params1 = parse_ros_nodehandler(nh1);
-#else
-  params1 = parse_command_line_arguments(argc, argv);
-#endif
+  params1.print_and_load(parser);
+  params1.print_and_load_simulation(parser);
   Simulator sim1(params1);
 
   // Vector of stored measurements
@@ -100,12 +117,8 @@ int main(int argc, char **argv) {
 
   // Create the simulator
   VioManagerOptions params2;
-#ifdef ROS_AVAILABLE
-  ros::NodeHandle nh2("~");
-  params2 = parse_ros_nodehandler(nh2);
-#else
-  params2 = parse_command_line_arguments(argc, argv);
-#endif
+  params2.print_and_load(parser);
+  params2.print_and_load_simulation(parser);
   Simulator sim2(params2);
   size_t ct_imu = 0;
   size_t ct_cam = 0;
@@ -147,6 +160,6 @@ int main(int argc, char **argv) {
   }
 
   // Done!
-  printf("success! they all are the same!\n");
+  PRINT_INFO("success! they all are the same!\n");
   return EXIT_SUCCESS;
 }

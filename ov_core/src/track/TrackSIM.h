@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 
 #ifndef OV_CORE_TRACK_SIM_H
 #define OV_CORE_TRACK_SIM_H
@@ -38,27 +37,20 @@ class TrackSIM : public TrackBase {
 public:
   /**
    * @brief Public constructor with configuration variables
+   * @param cameras camera calibration object which has all camera intrinsics in it
    * @param numaruco the max id of the arucotags, so we ensure that we start our non-auroc features above this value
    */
-  TrackSIM(int numaruco) : TrackBase(0, numaruco) {}
+  TrackSIM(std::unordered_map<size_t, std::shared_ptr<CamBase>> cameras, int numaruco)
+      : TrackBase(cameras, 0, numaruco, false, HistogramMethod::NONE) {}
 
   /**
-   * @brief Set the width and height for the cameras
-   * @param _camera_wh Width and height for each camera
+   * @brief Process a new image
+   * @warning This function should not be used!! Use @ref feed_measurement_simulation() instead.
+   * @param message Contains our timestamp, images, and camera ids
    */
-  void set_width_height(std::map<size_t, std::pair<int, int>> _camera_wh) { this->camera_wh = _camera_wh; }
-
-  /// @warning This function should not be used!! Use @ref feed_measurement_simulation() instead.
-  void feed_monocular(double timestamp, cv::Mat &img, size_t cam_id) override {
-    printf(RED "[SIM]: SIM TRACKER FEED MONOCULAR CALLED!!!\n" RESET);
-    printf(RED "[SIM]: THIS SHOULD NEVER HAPPEN!\n" RESET);
-    std::exit(EXIT_FAILURE);
-  }
-
-  /// @warning This function should not be used!! Use @ref feed_measurement_simulation() instead.
-  void feed_stereo(double timestamp, cv::Mat &img_left, cv::Mat &img_right, size_t cam_id_left, size_t cam_id_right) override {
-    printf(RED "[SIM]: SIM TRACKER FEED STEREO CALLED!!!\n" RESET);
-    printf(RED "[SIM]: THIS SHOULD NEVER HAPPEN!\n" RESET);
+  void feed_new_camera(const CameraData &message) override {
+    PRINT_ERROR(RED "[SIM]: SIM TRACKER FEED NEW CAMERA CALLED!!!\n" RESET);
+    PRINT_ERROR(RED "[SIM]: THIS SHOULD NEVER HAPPEN!\n" RESET);
     std::exit(EXIT_FAILURE);
   }
 
@@ -70,10 +62,6 @@ public:
    */
   void feed_measurement_simulation(double timestamp, const std::vector<int> &camids,
                                    const std::vector<std::vector<std::pair<size_t, Eigen::VectorXf>>> &feats);
-
-protected:
-  /// Width and height of our cameras
-  std::map<size_t, std::pair<int, int>> camera_wh;
 };
 
 } // namespace ov_core

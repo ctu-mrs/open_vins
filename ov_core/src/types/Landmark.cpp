@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,22 +19,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "Landmark.h"
 
 using namespace ov_type;
 
 Eigen::Matrix<double, 3, 1> Landmark::get_xyz(bool getfej) const {
 
-  /// CASE: Global 3d feature representation
-  /// CASE: Anchored 3D feature representation
+  // CASE: Global 3d feature representation
+  // CASE: Anchored 3D feature representation
   if (_feat_representation == LandmarkRepresentation::Representation::GLOBAL_3D ||
       _feat_representation == LandmarkRepresentation::Representation::ANCHORED_3D) {
     return (getfej) ? fej() : value();
   }
 
-  /// CASE: Global inverse depth feature representation
-  /// CASE: Anchored full inverse depth feature representation
+  // CASE: Global inverse depth feature representation
+  // CASE: Anchored full inverse depth feature representation
   if (_feat_representation == LandmarkRepresentation::Representation::GLOBAL_FULL_INVERSE_DEPTH ||
       _feat_representation == LandmarkRepresentation::Representation::ANCHORED_FULL_INVERSE_DEPTH) {
     Eigen::Matrix<double, 3, 1> p_invFinG = (getfej) ? fej() : value();
@@ -44,7 +43,7 @@ Eigen::Matrix<double, 3, 1> Landmark::get_xyz(bool getfej) const {
     return p_FinG;
   }
 
-  /// CASE: Anchored MSCKF inverse depth feature representation
+  // CASE: Anchored MSCKF inverse depth feature representation
   if (_feat_representation == LandmarkRepresentation::Representation::ANCHORED_MSCKF_INVERSE_DEPTH) {
     Eigen::Matrix<double, 3, 1> p_FinA;
     Eigen::Matrix<double, 3, 1> p_invFinA = value();
@@ -52,7 +51,7 @@ Eigen::Matrix<double, 3, 1> Landmark::get_xyz(bool getfej) const {
     return p_FinA;
   }
 
-  /// CASE: Estimate single depth of the feature using the initial bearing
+  // CASE: Estimate single depth of the feature using the initial bearing
   if (_feat_representation == LandmarkRepresentation::Representation::ANCHORED_INVERSE_DEPTH_SINGLE) {
     // if(getfej) return 1.0/fej()(0)*uv_norm_zero_fej;
     return 1.0 / value()(0) * uv_norm_zero;
@@ -65,8 +64,8 @@ Eigen::Matrix<double, 3, 1> Landmark::get_xyz(bool getfej) const {
 
 void Landmark::set_from_xyz(Eigen::Matrix<double, 3, 1> p_FinG, bool isfej) {
 
-  /// CASE: Global 3d feature representation
-  /// CASE: Anchored 3d feature representation
+  // CASE: Global 3d feature representation
+  // CASE: Anchored 3d feature representation
   if (_feat_representation == LandmarkRepresentation::Representation::GLOBAL_3D ||
       _feat_representation == LandmarkRepresentation::Representation::ANCHORED_3D) {
     if (isfej)
@@ -76,8 +75,8 @@ void Landmark::set_from_xyz(Eigen::Matrix<double, 3, 1> p_FinG, bool isfej) {
     return;
   }
 
-  /// CASE: Global inverse depth feature representation
-  /// CASE: Anchored inverse depth feature representation
+  // CASE: Global inverse depth feature representation
+  // CASE: Anchored inverse depth feature representation
   if (_feat_representation == LandmarkRepresentation::Representation::GLOBAL_FULL_INVERSE_DEPTH ||
       _feat_representation == LandmarkRepresentation::Representation::ANCHORED_FULL_INVERSE_DEPTH) {
 
@@ -101,7 +100,7 @@ void Landmark::set_from_xyz(Eigen::Matrix<double, 3, 1> p_FinG, bool isfej) {
     return;
   }
 
-  /// CASE: MSCKF anchored inverse depth representation
+  // CASE: MSCKF anchored inverse depth representation
   if (_feat_representation == LandmarkRepresentation::Representation::ANCHORED_MSCKF_INVERSE_DEPTH) {
 
     // MSCKF representation
@@ -118,7 +117,7 @@ void Landmark::set_from_xyz(Eigen::Matrix<double, 3, 1> p_FinG, bool isfej) {
     return;
   }
 
-  /// CASE: Estimate single depth of the feature using the initial bearing
+  // CASE: Estimate single depth of the feature using the initial bearing
   if (_feat_representation == LandmarkRepresentation::Representation::ANCHORED_INVERSE_DEPTH_SINGLE) {
 
     // Get the inverse depth

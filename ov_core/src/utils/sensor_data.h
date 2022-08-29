@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 
 #ifndef OV_CORE_SENSOR_DATA_H
 #define OV_CORE_SENSOR_DATA_H
@@ -61,13 +60,18 @@ struct CameraData {
   /// Camera ids for each of the images collected
   std::vector<int> sensor_ids;
 
-  /// Camera ids for each of the images collected
+  /// Raw image we have collected for each camera
   std::vector<cv::Mat> images;
+
+  /// Tracking masks for each camera we have
+  std::vector<cv::Mat> masks;
 
   /// Sort function to allow for using of STL containers
   bool operator<(const CameraData &other) const {
     if (timestamp == other.timestamp) {
-      return std::min_element(sensor_ids.begin(), sensor_ids.end()) < std::min_element(other.sensor_ids.begin(), other.sensor_ids.end());
+      int id = *std::min_element(sensor_ids.begin(), sensor_ids.end());
+      int id_other = *std::min_element(other.sensor_ids.begin(), other.sensor_ids.end());
+      return id < id_other;
     } else {
       return timestamp < other.timestamp;
     }

@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
-
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -28,12 +26,18 @@
 #include <ros/ros.h>
 
 #include "utils/Recorder.h"
+#include "utils/print.h"
 
 int main(int argc, char **argv) {
 
   // Create ros node
   ros::init(argc, argv, "pose_to_file");
   ros::NodeHandle nh("~");
+
+  // Verbosity setting
+  std::string verbosity;
+  nh.param<std::string>("verbosity", verbosity, "INFO");
+  ov_core::Printer::setPrintLevel(verbosity);
 
   // Get parameters to subscribe
   std::string topic, topic_type, fileoutput;
@@ -42,10 +46,10 @@ int main(int argc, char **argv) {
   nh.getParam("output", fileoutput);
 
   // Debug
-  ROS_INFO("Done reading config values");
-  ROS_INFO(" - topic = %s", topic.c_str());
-  ROS_INFO(" - topic_type = %s", topic_type.c_str());
-  ROS_INFO(" - file = %s", fileoutput.c_str());
+  PRINT_DEBUG("Done reading config values");
+  PRINT_DEBUG(" - topic = %s", topic.c_str());
+  PRINT_DEBUG(" - topic_type = %s", topic_type.c_str());
+  PRINT_DEBUG(" - file = %s", fileoutput.c_str());
 
   // Create the recorder object
   ov_eval::Recorder recorder(fileoutput);
@@ -61,9 +65,9 @@ int main(int argc, char **argv) {
   } else if (topic_type == std::string("Odometry")) {
     sub = nh.subscribe(topic, 9999, &ov_eval::Recorder::callback_odometry, &recorder);
   } else {
-    ROS_ERROR("The specified topic type is not supported");
-    ROS_ERROR("topic_type = %s", topic_type.c_str());
-    ROS_ERROR("please select from: PoseWithCovarianceStamped, PoseStamped, TransformStamped, Odometry");
+    PRINT_ERROR("The specified topic type is not supported");
+    PRINT_ERROR("topic_type = %s", topic_type.c_str());
+    PRINT_ERROR("please select from: PoseWithCovarianceStamped, PoseStamped, TransformStamped, Odometry");
     std::exit(EXIT_FAILURE);
   }
 

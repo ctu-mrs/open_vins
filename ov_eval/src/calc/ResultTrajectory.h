@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_EVAL_TRAJECTORY_H
 #define OV_EVAL_TRAJECTORY_H
 
@@ -34,10 +33,12 @@
 #include <Eigen/StdVector>
 
 #include "alignment/AlignTrajectory.h"
-#include "utils/Colors.h"
 #include "utils/Loader.h"
-#include "utils/Math.h"
 #include "utils/Statistics.h"
+
+#include "utils/colors.h"
+#include "utils/print.h"
+#include "utils/quat_ops.h"
 
 namespace ov_eval {
 

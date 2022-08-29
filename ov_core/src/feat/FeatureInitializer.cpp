@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "FeatureInitializer.h"
+
+#include "Feature.h"
+#include "utils/print.h"
+#include "utils/quat_ops.h"
 
 using namespace ov_core;
 
-bool FeatureInitializer::single_triangulation(Feature *feat, std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM) {
+bool FeatureInitializer::single_triangulation(std::shared_ptr<Feature> feat,
+                                              std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM) {
 
   // Total number of measurements
   // Also set the first measurement to be the anchor frame
@@ -84,11 +88,15 @@ bool FeatureInitializer::single_triangulation(Feature *feat, std::unordered_map<
   Eigen::MatrixXd p_f = A.colPivHouseholderQr().solve(b);
 
   // Check A and p_f
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(A);
   Eigen::MatrixXd singularValues;
   singularValues.resize(svd.singularValues().rows(), 1);
   singularValues = svd.singularValues();
   double condA = singularValues(0, 0) / singularValues(singularValues.rows() - 1, 0);
+
+  // std::stringstream ss;
+  // ss << feat->featid << " - cond " << std::abs(condA) << " - z " << p_f(2, 0) << std::endl;
+  // PRINT_DEBUG(ss.str().c_str());
 
   // If we have a bad condition number, or it is too close
   // Then set the flag for bad (i.e. set z-axis to nan)
@@ -103,7 +111,7 @@ bool FeatureInitializer::single_triangulation(Feature *feat, std::unordered_map<
   return true;
 }
 
-bool FeatureInitializer::single_triangulation_1d(Feature *feat,
+bool FeatureInitializer::single_triangulation_1d(std::shared_ptr<Feature> feat,
                                                  std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM) {
 
   // Total number of measurements
@@ -186,7 +194,8 @@ bool FeatureInitializer::single_triangulation_1d(Feature *feat,
   return true;
 }
 
-bool FeatureInitializer::single_gaussnewton(Feature *feat, std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM) {
+bool FeatureInitializer::single_gaussnewton(std::shared_ptr<Feature> feat,
+                                            std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM) {
 
   // Get into inverse depth
   double rho = 1 / feat->p_FinA(2);
@@ -289,7 +298,9 @@ bool FeatureInitializer::single_gaussnewton(Feature *feat, std::unordered_map<si
     double cost = compute_error(clonesCAM, feat, alpha + dx(0, 0), beta + dx(1, 0), rho + dx(2, 0));
 
     // Debug print
-    // cout << "run = " << runs << " | cost = " << dx.norm() << " | lamda = " << lam << " | depth = " << 1/rho << endl;
+    // std::stringstream ss;
+    // ss << "run = " << runs << " | cost = " << dx.norm() << " | lamda = " << lam << " | depth = " << 1/rho << endl;
+    // PRINT_DEBUG(ss.str().c_str());
 
     // Check if converged
     if (cost <= cost_old && (cost_old - cost) / cost_old < _options.min_dcost) {
@@ -345,6 +356,9 @@ bool FeatureInitializer::single_gaussnewton(Feature *feat, std::unordered_map<si
         base_line_max = base_line;
     }
   }
+  // std::stringstream ss;
+  // ss << feat->featid << " - max base " << (feat->p_FinA.norm() / base_line_max) << " - z " << feat->p_FinA(2) << std::endl;
+  // PRINT_DEBUG(ss.str().c_str());
 
   // Check if this feature is bad or not
   // 1. If the feature is too close
@@ -360,8 +374,8 @@ bool FeatureInitializer::single_gaussnewton(Feature *feat, std::unordered_map<si
   return true;
 }
 
-double FeatureInitializer::compute_error(std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM, Feature *feat,
-                                         double alpha, double beta, double rho) {
+double FeatureInitializer::compute_error(std::unordered_map<size_t, std::unordered_map<double, ClonePose>> &clonesCAM,
+                                         std::shared_ptr<Feature> feat, double alpha, double beta, double rho) {
 
   // Total error
   double err = 0;

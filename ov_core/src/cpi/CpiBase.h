@@ -29,10 +29,6 @@
 #include "utils/quat_ops.h"
 #include <Eigen/Dense>
 
-/**
- * @namespace ov_core
- * @brief Core algorithms for Open VINS
- */
 namespace ov_core {
 
 /**
@@ -76,6 +72,8 @@ public:
     e_2x = skew_x(e_2);
     e_3x = skew_x(e_3);
   }
+
+  virtual ~CpiBase() {}
 
   /**
    * @brief Set linearization points of the integration.

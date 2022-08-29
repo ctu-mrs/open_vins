@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_CORE_TRACK_DESC_H
 #define OV_CORE_TRACK_DESC_H
-
-#include <opencv2/features2d.hpp>
 
 #include "TrackBase.h"
 
@@ -41,44 +38,49 @@ class TrackDescriptor : public TrackBase {
 
 public:
   /**
-   * @brief Public default constructor
-   */
-  TrackDescriptor() : TrackBase(), threshold(10), grid_x(8), grid_y(5), knn_ratio(0.75) {}
-
-  /**
    * @brief Public constructor with configuration variables
+   * @param cameras camera calibration object which has all camera intrinsics in it
    * @param numfeats number of features we want want to track (i.e. track 200 points from frame to frame)
    * @param numaruco the max id of the arucotags, so we ensure that we start our non-auroc features above this value
+   * @param stereo if we should do stereo feature tracking or binocular
+   * @param histmethod what type of histogram pre-processing should be done (histogram eq?)
    * @param fast_threshold FAST detection threshold
    * @param gridx size of grid in the x-direction / u-direction
    * @param gridy size of grid in the y-direction / v-direction
+   * @param minpxdist features need to be at least this number pixels away from each other
    * @param knnratio matching ratio needed (smaller value forces top two descriptors during match to be more different)
    */
-  explicit TrackDescriptor(int numfeats, int numaruco, int fast_threshold, int gridx, int gridy, double knnratio)
-      : TrackBase(numfeats, numaruco), threshold(fast_threshold), grid_x(gridx), grid_y(gridy), knn_ratio(knnratio) {}
+  explicit TrackDescriptor(std::unordered_map<size_t, std::shared_ptr<CamBase>> cameras, int numfeats, int numaruco, bool stereo,
+                           HistogramMethod histmethod, int fast_threshold, int gridx, int gridy, int minpxdist, double knnratio)
+      : TrackBase(cameras, numfeats, numaruco, stereo, histmethod), threshold(fast_threshold), grid_x(gridx), grid_y(gridy),
+        min_px_dist(minpxdist), knn_ratio(knnratio) {}
 
   /**
-   * @brief Process a new monocular image
-   * @param timestamp timestamp the new image occurred at
-   * @param img new cv:Mat grayscale image
-   * @param cam_id the camera id that this new image corresponds too
+   * @brief Process a new image
+   * @param message Contains our timestamp, images, and camera ids
    */
-  void feed_monocular(double timestamp, cv::Mat &img, size_t cam_id) override;
-
-  /**
-   * @brief Process new stereo pair of images
-   * @param timestamp timestamp this pair occured at (stereo is synchronised)
-   * @param img_left first grayscaled image
-   * @param img_right second grayscaled image
-   * @param cam_id_left first image camera id
-   * @param cam_id_right second image camera id
-   */
-  void feed_stereo(double timestamp, cv::Mat &img_left, cv::Mat &img_right, size_t cam_id_left, size_t cam_id_right) override;
+  void feed_new_camera(const CameraData &message) override;
 
 protected:
   /**
+   * @brief Process a new monocular image
+   * @param message Contains our timestamp, images, and camera ids
+   * @param msg_id the camera index in message data vector
+   */
+  void feed_monocular(const CameraData &message, size_t msg_id);
+
+  /**
+   * @brief Process new stereo pair of images
+   * @param message Contains our timestamp, images, and camera ids
+   * @param msg_id_left first image index in message data vector
+   * @param msg_id_right second image index in message data vector
+   */
+  void feed_stereo(const CameraData &message, size_t msg_id_left, size_t msg_id_right);
+
+  /**
    * @brief Detects new features in the current image
    * @param img0 image we will detect features on
+   * @param mask0 mask which has what ROI we do not want features in
    * @param pts0 vector of extracted keypoints
    * @param desc0 vector of the extracted descriptors
    * @param ids0 vector of all new IDs
@@ -88,12 +90,15 @@ protected:
    * Our vector of IDs will be later overwritten when we match features temporally to the previous frame's features.
    * See robust_match() for the matching.
    */
-  void perform_detection_monocular(const cv::Mat &img0, std::vector<cv::KeyPoint> &pts0, cv::Mat &desc0, std::vector<size_t> &ids0);
+  void perform_detection_monocular(const cv::Mat &img0, const cv::Mat &mask0, std::vector<cv::KeyPoint> &pts0, cv::Mat &desc0,
+                                   std::vector<size_t> &ids0);
 
   /**
    * @brief Detects new features in the current stereo pair
    * @param img0 left image we will detect features on
    * @param img1 right image we will detect features on
+   * @param mask0 mask which has what ROI we do not want features in
+   * @param mask1 mask which has what ROI we do not want features in
    * @param pts0 left vector of new keypoints
    * @param pts1 right vector of new keypoints
    * @param desc0 left vector of extracted descriptors
@@ -108,9 +113,9 @@ protected:
    * Our vector of IDs will be later overwritten when we match features temporally to the previous frame's features.
    * See robust_match() for the matching.
    */
-  void perform_detection_stereo(const cv::Mat &img0, const cv::Mat &img1, std::vector<cv::KeyPoint> &pts0, std::vector<cv::KeyPoint> &pts1,
-                                cv::Mat &desc0, cv::Mat &desc1, size_t cam_id0, size_t cam_id1, std::vector<size_t> &ids0,
-                                std::vector<size_t> &ids1);
+  void perform_detection_stereo(const cv::Mat &img0, const cv::Mat &img1, const cv::Mat &mask0, const cv::Mat &mask1,
+                                std::vector<cv::KeyPoint> &pts0, std::vector<cv::KeyPoint> &pts1, cv::Mat &desc0, cv::Mat &desc1,
+                                size_t cam_id0, size_t cam_id1, std::vector<size_t> &ids0, std::vector<size_t> &ids1);
 
   /**
    * @brief Find matches between two keypoint+descriptor sets.
@@ -127,8 +132,8 @@ protected:
    * Original code is from the "RobustMatcher" in the opencv examples, and seems to give very good results in the matches.
    * https://github.com/opencv/opencv/blob/master/samples/cpp/tutorial_code/calib3d/real_time_pose_estimation/src/RobustMatcher.cpp
    */
-  void robust_match(std::vector<cv::KeyPoint> &pts0, std::vector<cv::KeyPoint> pts1, cv::Mat &desc0, cv::Mat &desc1, size_t id0, size_t id1,
-                    std::vector<cv::DMatch> &matches);
+  void robust_match(const std::vector<cv::KeyPoint> &pts0, const std::vector<cv::KeyPoint> &pts1, const cv::Mat &desc0,
+                    const cv::Mat &desc1, size_t id0, size_t id1, std::vector<cv::DMatch> &matches);
 
   // Helper functions for the robust_match function
   // Original code is from the "RobustMatcher" in the opencv examples
@@ -151,6 +156,9 @@ protected:
   int threshold;
   int grid_x;
   int grid_y;
+
+  // Minimum pixel distance to be "far away enough" to be a different extracted feature
+  int min_px_dist;
 
   // The ratio between two kNN matches, if that ratio is larger then this threshold
   // then the two features are too close, so should be considered ambiguous/bad match

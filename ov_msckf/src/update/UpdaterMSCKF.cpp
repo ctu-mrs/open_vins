@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,41 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "UpdaterMSCKF.h"
 
+#include "UpdaterHelper.h"
+
+#include "feat/Feature.h"
+#include "feat/FeatureInitializer.h"
+#include "state/State.h"
+#include "state/StateHelper.h"
+#include "types/LandmarkRepresentation.h"
+#include "utils/colors.h"
+#include "utils/print.h"
+#include "utils/quat_ops.h"
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/math/distributions/chi_squared.hpp>
+
 using namespace ov_core;
+using namespace ov_type;
 using namespace ov_msckf;
+
+UpdaterMSCKF::UpdaterMSCKF(UpdaterOptions &options, ov_core::FeatureInitializerOptions &feat_init_options) : _options(options) {
+
+  // Save our raw pixel noise squared
+  _options.sigma_pix_sq = std::pow(_options.sigma_pix, 2);
+
+  // Save our feature initializer
+  initializer_feat = std::shared_ptr<ov_core::FeatureInitializer>(new ov_core::FeatureInitializer(feat_init_options));
+
+  // Initialize the chi squared test table with confidence level 0.95
+  // https://github.com/KumarRobotics/msckf_vio/blob/050c50defa5a7fd9a04c1eed5687b405f02919b5/src/msckf_vio.cpp#L215-L221
+  for (int i = 1; i < 500; i++) {
+    boost::math::chi_squared chi_squared_dist(i);
+    chi_squared_table[i] = boost::math::quantile(chi_squared_dist, 0.95);
+  }
+}
 
 void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_ptr<Feature>> &feature_vec) {
 
@@ -32,7 +62,7 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
     return;
 
   // Start timing
-  boost::posix_time::ptime rT0, rT1, rT2, rT3, rT4, rT5, rT6, rT7;
+  boost::posix_time::ptime rT0, rT1, rT2, rT3, rT4, rT5;
   rT0 = boost::posix_time::microsec_clock::local_time();
 
   // 0. Get all timestamps our clones are at (and thus valid measurement times)
@@ -91,15 +121,15 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
     // Triangulate the feature and remove if it fails
     bool success_tri = true;
     if (initializer_feat->config().triangulate_1d) {
-      success_tri = initializer_feat->single_triangulation_1d(it1->get(), clones_cam);
+      success_tri = initializer_feat->single_triangulation_1d(*it1, clones_cam);
     } else {
-      success_tri = initializer_feat->single_triangulation(it1->get(), clones_cam);
+      success_tri = initializer_feat->single_triangulation(*it1, clones_cam);
     }
 
     // Gauss-newton refine the feature
     bool success_refine = true;
     if (initializer_feat->config().refine_features) {
-      success_refine = initializer_feat->single_gaussnewton(it1->get(), clones_cam);
+      success_refine = initializer_feat->single_gaussnewton(*it1, clones_cam);
     }
 
     // Remove the feature if not a success
@@ -188,16 +218,18 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
     } else {
       boost::math::chi_squared chi_squared_dist(res.rows());
       chi2_check = boost::math::quantile(chi_squared_dist, 0.95);
-      printf(YELLOW "chi2_check over the residual limit - %d\n" RESET, (int)res.rows());
+      PRINT_WARNING(YELLOW "chi2_check over the residual limit - %d\n" RESET, (int)res.rows());
     }
 
     // Check if we should delete or not
     if (chi2 > _options.chi2_multipler * chi2_check) {
       (*it2)->to_delete = true;
       it2 = feature_vec.erase(it2);
-      // cout << "featid = " << feat.featid << endl;
-      // cout << "chi2 = " << chi2 << " > " << _options.chi2_multipler*chi2_check << endl;
-      // cout << "res = " << endl << res.transpose() << endl;
+      // PRINT_DEBUG("featid = %d\n", feat.featid);
+      // PRINT_DEBUG("chi2 = %f > %f\n", chi2, _options.chi2_multipler*chi2_check);
+      // std::stringstream ss;
+      // ss << "res = " << std::endl << res.transpose() << std::endl;
+      // PRINT_DEBUG(ss.str().c_str());
       continue;
     }
 
@@ -254,10 +286,10 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
   rT5 = boost::posix_time::microsec_clock::local_time();
 
   // Debug print timing information
-  // printf("[MSCKF-UP]: %.4f seconds to clean\n",(rT1-rT0).total_microseconds() * 1e-6);
-  // printf("[MSCKF-UP]: %.4f seconds to triangulate\n",(rT2-rT1).total_microseconds() * 1e-6);
-  // printf("[MSCKF-UP]: %.4f seconds create system (%d features)\n",(rT3-rT2).total_microseconds() * 1e-6, (int)feature_vec.size());
-  // printf("[MSCKF-UP]: %.4f seconds compress system\n",(rT4-rT3).total_microseconds() * 1e-6);
-  // printf("[MSCKF-UP]: %.4f seconds update state (%d size)\n",(rT5-rT4).total_microseconds() * 1e-6, (int)res_big.rows());
-  // printf("[MSCKF-UP]: %.4f seconds total\n",(rT5-rT1).total_microseconds() * 1e-6);
+  PRINT_DEBUG("[MSCKF-UP]: %.4f seconds to clean\n", (rT1 - rT0).total_microseconds() * 1e-6);
+  PRINT_DEBUG("[MSCKF-UP]: %.4f seconds to triangulate\n", (rT2 - rT1).total_microseconds() * 1e-6);
+  PRINT_DEBUG("[MSCKF-UP]: %.4f seconds create system (%d features)\n", (rT3 - rT2).total_microseconds() * 1e-6, (int)feature_vec.size());
+  PRINT_DEBUG("[MSCKF-UP]: %.4f seconds compress system\n", (rT4 - rT3).total_microseconds() * 1e-6);
+  PRINT_DEBUG("[MSCKF-UP]: %.4f seconds update state (%d size)\n", (rT5 - rT4).total_microseconds() * 1e-6, (int)res_big.rows());
+  PRINT_DEBUG("[MSCKF-UP]: %.4f seconds total\n", (rT5 - rT1).total_microseconds() * 1e-6);
 }

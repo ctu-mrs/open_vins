@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,23 +19,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_MSCKF_STATE_H
 #define OV_MSCKF_STATE_H
 
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
 #include "StateOptions.h"
+#include "cam/CamBase.h"
 #include "types/IMU.h"
 #include "types/Landmark.h"
 #include "types/PoseJPL.h"
 #include "types/Type.h"
 #include "types/Vec.h"
-
-using namespace ov_core;
-using namespace ov_type;
 
 namespace ov_msckf {
 
@@ -81,31 +79,31 @@ public:
   int max_covariance_size() { return (int)_Cov.rows(); }
 
   /// Current timestamp (should be the last update time!)
-  double _timestamp;
+  double _timestamp = -1;
 
   /// Struct containing filter options
   StateOptions _options;
 
   /// Pointer to the "active" IMU state (q_GtoI, p_IinG, v_IinG, bg, ba)
-  std::shared_ptr<IMU> _imu;
+  std::shared_ptr<ov_type::IMU> _imu;
 
   /// Map between imaging times and clone poses (q_GtoIi, p_IiinG)
-  std::map<double, std::shared_ptr<PoseJPL>> _clones_IMU;
+  std::map<double, std::shared_ptr<ov_type::PoseJPL>> _clones_IMU;
 
   /// Our current set of SLAM features (3d positions)
-  std::unordered_map<size_t, std::shared_ptr<Landmark>> _features_SLAM;
+  std::unordered_map<size_t, std::shared_ptr<ov_type::Landmark>> _features_SLAM;
 
   /// Time offset base IMU to camera (t_imu = t_cam + t_off)
-  std::shared_ptr<Vec> _calib_dt_CAMtoIMU;
+  std::shared_ptr<ov_type::Vec> _calib_dt_CAMtoIMU;
 
   /// Calibration poses for each camera (R_ItoC, p_IinC)
-  std::unordered_map<size_t, std::shared_ptr<PoseJPL>> _calib_IMUtoCAM;
+  std::unordered_map<size_t, std::shared_ptr<ov_type::PoseJPL>> _calib_IMUtoCAM;
 
   /// Camera intrinsics
-  std::unordered_map<size_t, std::shared_ptr<Vec>> _cam_intrinsics;
+  std::unordered_map<size_t, std::shared_ptr<ov_type::Vec>> _cam_intrinsics;
 
-  /// What distortion model we are using (false=radtan, true=fisheye)
-  std::unordered_map<size_t, bool> _cam_intrinsics_model;
+  /// Camera intrinsics camera objects
+  std::unordered_map<size_t, std::shared_ptr<ov_core::CamBase>> _cam_intrinsics_cameras;
 
 private:
   // Define that the state helper is a friend class of this class
@@ -117,7 +115,7 @@ private:
   Eigen::MatrixXd _Cov;
 
   /// Vector of variables
-  std::vector<std::shared_ptr<Type>> _variables;
+  std::vector<std::shared_ptr<ov_type::Type>> _variables;
 };
 
 } // namespace ov_msckf

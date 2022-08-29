@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 
 #ifndef OV_TYPE_TYPE_POSEJPL_H
 #define OV_TYPE_TYPE_POSEJPL_H
@@ -123,10 +122,7 @@ public:
   Eigen::Matrix<double, 3, 3> Rot() const { return _q->Rot(); }
 
   /// FEJ Rotation access
-  Eigen::Matrix<double, 3, 3> Rot_fej() const {
-    return _q->Rot_fej();
-    ;
-  }
+  Eigen::Matrix<double, 3, 3> Rot_fej() const { return _q->Rot_fej(); }
 
   /// Rotation access as quaternion
   Eigen::Matrix<double, 4, 1> quat() const { return _q->value(); }

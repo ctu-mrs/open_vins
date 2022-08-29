@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
-
 /**
  * @namespace ov_core
+ * @brief Core algorithms for OpenVINS
  *
  * This has the core algorithms that all projects within the OpenVINS ecosystem leverage.
  * The purpose is to allow for the reuse of code that could be shared between different localization systems (i.e. msckf-based, batch-based,
@@ -30,7 +29,6 @@
  * key components of the ov_core codebase are the following:
  *
  * - 3d feature initialization (see @ref ov_core::FeatureInitializer)
- * - Inertial state initialization (see @ref ov_core::InertialInitializer)
  * - SE(3) b-spline (see @ref ov_core::BsplineSE3)
  * - KLT, descriptor, aruco, and simulation feature trackers
  * - Groundtruth dataset reader (see @ref ov_core::DatasetReader)
@@ -47,6 +45,7 @@ namespace ov_core {}
 
 /**
  * @namespace ov_type
+ * @brief Dynamic type system types
  *
  * Types leveraged by the EKF system for covariance management.
  * These types store where they are in the covariance along with their current estimate.

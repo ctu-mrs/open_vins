@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,20 +19,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_MSCKF_UPDATER_HELPER_H
 #define OV_MSCKF_UPDATER_HELPER_H
 
 #include <Eigen/Eigen>
+#include <memory>
+#include <unordered_map>
 
-#include "feat/Feature.h"
-#include "state/State.h"
-#include "state/StateOptions.h"
 #include "types/LandmarkRepresentation.h"
-#include "utils/colors.h"
-#include "utils/quat_ops.h"
+
+namespace ov_type {
+class Type;
+} // namespace ov_type
 
 namespace ov_msckf {
+
+class State;
 
 /**
  * @brief Class that has helper functions for our updaters.
@@ -45,7 +47,6 @@ namespace ov_msckf {
  *
  */
 class UpdaterHelper {
-
 public:
   /**
    * @brief Feature object that our UpdaterHelper leverages, has all measurements and means
@@ -65,7 +66,7 @@ public:
     std::unordered_map<size_t, std::vector<double>> timestamps;
 
     /// What representation our feature is in
-    LandmarkRepresentation::Representation feat_representation;
+    ov_type::LandmarkRepresentation::Representation feat_representation;
 
     /// What camera ID our pose is anchored in!! By default the first measurement is the anchor.
     int anchor_cam_id = -1;
@@ -96,21 +97,7 @@ public:
    * @param[out] x_order Extra variables our extra Jacobian has (for example anchored pose)
    */
   static void get_feature_jacobian_representation(std::shared_ptr<State> state, UpdaterHelperFeature &feature, Eigen::MatrixXd &H_f,
-                                                  std::vector<Eigen::MatrixXd> &H_x, std::vector<std::shared_ptr<Type>> &x_order);
-
-  /**
-   * @brief This will compute the Jacobian in respect to the intrinsic calibration parameters and normalized coordinates
-   *
-   * @param state State of the filter system
-   * @param uv_norm Normalized image coordinates
-   * @param isfisheye If this feature is for a fisheye model
-   * @param cam_d Camera intrinsics values
-   * @param dz_dzn Derivative in respect to normalized coordinates
-   * @param dz_dzeta Derivative in respect to distortion paramters
-   */
-  static void get_feature_jacobian_intrinsics(std::shared_ptr<State> state, const Eigen::Vector2d &uv_norm, bool isfisheye,
-                                              Eigen::Matrix<double, 8, 1> cam_d, Eigen::Matrix<double, 2, 2> &dz_dzn,
-                                              Eigen::Matrix<double, 2, 8> &dz_dzeta);
+                                                  std::vector<Eigen::MatrixXd> &H_x, std::vector<std::shared_ptr<ov_type::Type>> &x_order);
 
   /**
    * @brief Will construct the "stacked" Jacobians for a single feature from all its measurements
@@ -123,7 +110,7 @@ public:
    * @param[out] x_order Extra variables our extra Jacobian has (for example anchored pose)
    */
   static void get_feature_jacobian_full(std::shared_ptr<State> state, UpdaterHelperFeature &feature, Eigen::MatrixXd &H_f,
-                                        Eigen::MatrixXd &H_x, Eigen::VectorXd &res, std::vector<std::shared_ptr<Type>> &x_order);
+                                        Eigen::MatrixXd &H_x, Eigen::VectorXd &res, std::vector<std::shared_ptr<ov_type::Type>> &x_order);
 
   /**
    * @brief This will project the left nullspace of H_f onto the linear system.

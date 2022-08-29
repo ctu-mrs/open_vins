@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,13 +19,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_TYPE_TYPE_LANDMARK_H
 #define OV_TYPE_TYPE_LANDMARK_H
 
 #include "LandmarkRepresentation.h"
 #include "Vec.h"
 #include "utils/colors.h"
+#include "utils/print.h"
 
 namespace ov_type {
 
@@ -79,10 +79,10 @@ public:
     assert(dx.rows() == _size);
     set_value(_value + dx);
     // Ensure we are not near zero in the z-direction
-    if (LandmarkRepresentation::is_relative_representation(_feat_representation) && _value(_value.rows() - 1) < 1e-8) {
-      printf(YELLOW "WARNING DEPTH %.8f BECAME CLOSE TO ZERO IN UPDATE!!!\n" RESET, _value(_value.rows() - 1));
-      should_marg = true;
-    }
+    // if (LandmarkRepresentation::is_relative_representation(_feat_representation) && _value(_value.rows() - 1) < 1e-8) {
+    //  PRINT_DEBUG(YELLOW "WARNING DEPTH %.8f BECAME CLOSE TO ZERO IN UPDATE!!!\n" RESET, _value(_value.rows() - 1));
+    //  should_marg = true;
+    // }
   }
 
   /**

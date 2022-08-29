@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "State.h"
 
-#include <memory>
-
 using namespace ov_core;
+using namespace ov_type;
 using namespace ov_msckf;
 
 State::State(StateOptions &options) {
@@ -59,7 +57,6 @@ State::State(StateOptions &options) {
     // Add these to the corresponding maps
     _calib_IMUtoCAM.insert({i, pose});
     _cam_intrinsics.insert({i, intrin});
-    _cam_intrinsics_model.insert({i, false});
 
     // If calibrating camera-imu pose, add to variables
     if (_options.do_calib_camera_pose) {
@@ -77,7 +74,7 @@ State::State(StateOptions &options) {
   }
 
   // Finally initialize our covariance to small value
-  _Cov = 1e-3 * Eigen::MatrixXd::Identity(current_id, current_id);
+  _Cov = std::pow(1e-3, 2) * Eigen::MatrixXd::Identity(current_id, current_id);
 
   // Finally, set some of our priors for our calibration parameters
   if (_options.do_calib_camera_timeoffset) {
@@ -85,7 +82,7 @@ State::State(StateOptions &options) {
   }
   if (_options.do_calib_camera_pose) {
     for (int i = 0; i < _options.num_cameras; i++) {
-      _Cov.block(_calib_IMUtoCAM.at(i)->id(), _calib_IMUtoCAM.at(i)->id(), 3, 3) = std::pow(0.001, 2) * Eigen::MatrixXd::Identity(3, 3);
+      _Cov.block(_calib_IMUtoCAM.at(i)->id(), _calib_IMUtoCAM.at(i)->id(), 3, 3) = std::pow(0.005, 2) * Eigen::MatrixXd::Identity(3, 3);
       _Cov.block(_calib_IMUtoCAM.at(i)->id() + 3, _calib_IMUtoCAM.at(i)->id() + 3, 3, 3) =
           std::pow(0.01, 2) * Eigen::MatrixXd::Identity(3, 3);
     }

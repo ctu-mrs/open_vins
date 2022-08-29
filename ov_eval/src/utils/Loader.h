@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_EVAL_LOADER_H
 #define OV_EVAL_LOADER_H
 
@@ -30,7 +29,8 @@
 #include <Eigen/Eigen>
 #include <boost/filesystem.hpp>
 
-#include "Colors.h"
+#include "utils/colors.h"
+#include "utils/print.h"
 
 namespace ov_eval {
 
@@ -50,6 +50,17 @@ public:
    */
   static void load_data(std::string path_traj, std::vector<double> &times, std::vector<Eigen::Matrix<double, 7, 1>> &poses,
                         std::vector<Eigen::Matrix3d> &cov_ori, std::vector<Eigen::Matrix3d> &cov_pos);
+
+  /**
+   * @brief This will load *comma* separated trajectory into memory (ASL/ETH format)
+   * @param path_traj Path to the trajectory file that we want to read in.
+   * @param times Timesteps in seconds for each pose
+   * @param poses Pose at every timestep [pos,quat]
+   * @param cov_ori Vector of orientation covariances at each timestep (empty if we can't load)
+   * @param cov_pos Vector of position covariances at each timestep (empty if we can't load)
+   */
+  static void load_data_csv(std::string path_traj, std::vector<double> &times, std::vector<Eigen::Matrix<double, 7, 1>> &poses,
+                            std::vector<Eigen::Matrix3d> &cov_ori, std::vector<Eigen::Matrix3d> &cov_pos);
 
   /**
    * @brief Load an arbitrary sized row of *space* separated values, used for our simulation

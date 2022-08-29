@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include <Eigen/Eigen>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -27,8 +26,9 @@
 #include <string>
 
 #include "calc/ResultTrajectory.h"
-#include "utils/Colors.h"
 #include "utils/Loader.h"
+#include "utils/colors.h"
+#include "utils/print.h"
 
 #ifdef HAVE_PYTHONLIBS
 
@@ -41,11 +41,14 @@
 
 int main(int argc, char **argv) {
 
+  // Verbosity setting
+  ov_core::Printer::setPrintLevel("INFO");
+
   // Ensure we have a path
   if (argc < 4) {
-    printf(RED "ERROR: Please specify a align mode, folder, and algorithms\n" RESET);
-    printf(RED "ERROR: ./error_comparison <align_mode> <folder_groundtruth> <folder_algorithms>\n" RESET);
-    printf(RED "ERROR: rosrun ov_eval error_comparison <align_mode> <folder_groundtruth> <folder_algorithms>\n" RESET);
+    PRINT_ERROR(RED "ERROR: Please specify a align mode, folder, and algorithms\n" RESET);
+    PRINT_ERROR(RED "ERROR: ./error_comparison <align_mode> <folder_groundtruth> <folder_algorithms>\n" RESET);
+    PRINT_ERROR(RED "ERROR: rosrun ov_eval error_comparison <align_mode> <folder_groundtruth> <folder_algorithms>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
 
@@ -68,7 +71,7 @@ int main(int argc, char **argv) {
     ov_eval::Loader::load_data(path_groundtruths.at(i).string(), times, poses, cov_ori, cov_pos);
     // Print its length and stats
     double length = ov_eval::Loader::get_total_length(poses);
-    printf("[COMP]: %d poses in %s => length of %.2f meters\n", (int)times.size(), path_groundtruths.at(i).filename().c_str(), length);
+    PRINT_INFO("[COMP]: %d poses in %s => length of %.2f meters\n", (int)times.size(), path_groundtruths.at(i).filename().c_str(), length);
   }
 
   // Get the algorithms we will process
@@ -121,8 +124,8 @@ int main(int argc, char **argv) {
   for (size_t i = 0; i < path_algorithms.size(); i++) {
 
     // Debug print
-    printf("======================================\n");
-    printf("[COMP]: processing %s algorithm\n", path_algorithms.at(i).filename().c_str());
+    PRINT_DEBUG("======================================\n");
+    PRINT_DEBUG("[COMP]: processing %s algorithm\n", path_algorithms.at(i).filename().c_str());
 
     // Get the list of datasets this algorithm records
     std::map<std::string, boost::filesystem::path> path_algo_datasets;
@@ -137,14 +140,14 @@ int main(int argc, char **argv) {
 
       // Check if we have runs for this dataset
       if (path_algo_datasets.find(path_groundtruths.at(j).stem().string()) == path_algo_datasets.end()) {
-        printf(RED "[COMP]: %s dataset does not have any runs for %s!!!!!\n" RESET, path_algorithms.at(i).filename().c_str(),
-               path_groundtruths.at(j).stem().c_str());
+        PRINT_ERROR(RED "[COMP]: %s dataset does not have any runs for %s!!!!!\n" RESET, path_algorithms.at(i).filename().c_str(),
+                    path_groundtruths.at(j).stem().c_str());
         continue;
       }
 
       // Debug print
-      printf("[COMP]: processing %s algorithm => %s dataset\n", path_algorithms.at(i).filename().c_str(),
-             path_groundtruths.at(j).stem().c_str());
+      PRINT_DEBUG("[COMP]: processing %s algorithm => %s dataset\n", path_algorithms.at(i).filename().c_str(),
+                  path_groundtruths.at(j).stem().c_str());
 
       // Errors for this specific dataset (i.e. our averages over the total runs)
       ov_eval::Statistics ate_dataset_ori;
@@ -199,17 +202,17 @@ int main(int argc, char **argv) {
 
       // Print stats for this specific dataset
       std::string prefix = (ate_dataset_ori.mean > 10 || ate_dataset_pos.mean > 10) ? RED : "";
-      printf("%s\tATE: mean_ori = %.3f | mean_pos = %.3f (%d runs)\n" RESET, prefix.c_str(), ate_dataset_ori.mean, ate_dataset_pos.mean,
-             (int)ate_dataset_pos.values.size());
-      printf("\tATE: std_ori  = %.3f | std_pos  = %.3f\n", ate_dataset_ori.std, ate_dataset_pos.std);
+      PRINT_DEBUG("%s\tATE: mean_ori = %.3f | mean_pos = %.3f (%d runs)\n" RESET, prefix.c_str(), ate_dataset_ori.mean,
+                  ate_dataset_pos.mean, (int)ate_dataset_pos.values.size());
+      PRINT_DEBUG("\tATE: std_ori  = %.3f | std_pos  = %.3f\n", ate_dataset_ori.std, ate_dataset_pos.std);
       for (auto &seg : rpe_dataset) {
         seg.second.first.calculate();
         seg.second.second.calculate();
-        // printf("\tRPE: seg %d - mean_ori = %.3f | mean_pos = %.3f (%d
+        // PRINT_DEBUG("\tRPE: seg %d - mean_ori = %.3f | mean_pos = %.3f (%d
         // samples)\n",(int)seg.first,seg.second.first.mean,seg.second.second.mean,(int)seg.second.second.values.size());
-        printf("\tRPE: seg %d - median_ori = %.4f | median_pos = %.4f (%d samples)\n", (int)seg.first, seg.second.first.median,
-               seg.second.second.median, (int)seg.second.second.values.size());
-        // printf("RPE: seg %d - std_ori  = %.3f | std_pos  = %.3f\n",(int)seg.first,seg.second.first.std,seg.second.second.std);
+        PRINT_DEBUG("\tRPE: seg %d - median_ori = %.4f | median_pos = %.4f (%d samples)\n", (int)seg.first, seg.second.first.median,
+                    seg.second.second.median, (int)seg.second.second.values.size());
+        // PRINT_DEBUG("RPE: seg %d - std_ori  = %.3f | std_pos  = %.3f\n",(int)seg.first,seg.second.first.std,seg.second.second.std);
       }
 
       // Update the global ATE error stats
@@ -230,62 +233,65 @@ int main(int argc, char **argv) {
       }
     }
   }
+  PRINT_DEBUG("\n\n");
 
   //===============================================================================
   //===============================================================================
   //===============================================================================
 
   // Finally print the ATE for all the runs
-  printf("============================================\n");
-  printf("ATE LATEX TABLE\n");
-  printf("============================================\n");
+  PRINT_INFO("============================================\n");
+  PRINT_INFO("ATE LATEX TABLE\n");
+  PRINT_INFO("============================================\n");
   for (size_t i = 0; i < path_groundtruths.size(); i++) {
     std::string gtname = path_groundtruths.at(i).stem().string();
     boost::replace_all(gtname, "_", "\\_");
-    printf(" & \\textbf{%s}", gtname.c_str());
+    PRINT_INFO(" & \\textbf{%s}", gtname.c_str());
   }
-  printf(" & \\textbf{Average} \\\\\\hline\n");
+  PRINT_INFO(" & \\textbf{Average} \\\\\\hline\n");
   for (auto &algo : algo_ate) {
     std::string algoname = algo.first;
     boost::replace_all(algoname, "_", "\\_");
-    cout << algoname;
+    PRINT_INFO(algoname.c_str());
     double sum_ori = 0.0;
     double sum_pos = 0.0;
     int sum_ct = 0;
     for (auto &seg : algo.second) {
       if (seg.first.values.empty() || seg.second.values.empty()) {
-        printf(" & - / -");
+        PRINT_INFO(" & - / -");
       } else {
-        printf(" & %.3f / %.3f", seg.first.rmse, seg.second.rmse);
-        sum_ori += seg.first.rmse;
-        sum_pos += seg.second.rmse;
+        seg.first.calculate();
+        seg.second.calculate();
+        PRINT_INFO(" & %.3f / %.3f", seg.first.mean, seg.second.mean);
+        sum_ori += seg.first.mean;
+        sum_pos += seg.second.mean;
         sum_ct++;
       }
     }
-    printf(" & %.3f / %.3f \\\\\n", sum_ori / sum_ct, sum_pos / sum_ct);
+    PRINT_INFO(" & %.3f / %.3f \\\\\n", sum_ori / sum_ct, sum_pos / sum_ct);
   }
-  printf("============================================\n");
+  PRINT_INFO("============================================\n");
 
   // Finally print the RPE for all the runs
-  printf("============================================\n");
-  printf("RPE LATEX TABLE\n");
-  printf("============================================\n");
+  PRINT_INFO("============================================\n");
+  PRINT_INFO("RPE LATEX TABLE\n");
+  PRINT_INFO("============================================\n");
   for (const auto &len : segments) {
-    printf(" & \\textbf{%dm}", (int)len);
+    PRINT_INFO(" & \\textbf{%dm}", (int)len);
   }
-  printf(" \\\\\\hline\n");
+  PRINT_INFO(" \\\\\\hline\n");
   for (auto &algo : algo_rpe) {
     std::string algoname = algo.first;
     boost::replace_all(algoname, "_", "\\_");
-    cout << algoname;
+    PRINT_INFO(algoname.c_str());
     for (auto &seg : algo.second) {
       seg.second.first.calculate();
       seg.second.second.calculate();
-      printf(" & %.3f / %.3f", seg.second.first.median, seg.second.second.median);
+      PRINT_INFO(" & %.3f / %.3f", seg.second.first.mean, seg.second.second.mean);
     }
-    printf(" \\\\\n");
+    PRINT_INFO(" \\\\\n");
   }
-  printf("============================================\n");
+  PRINT_INFO("============================================\n");
 
 #ifdef HAVE_PYTHONLIBS
 

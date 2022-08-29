@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
 # Source our workspace directory to load ENV variables
-source /home/patrick/workspace/catkin_ws_ov/devel/setup.bash
-
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+source ${SCRIPT_DIR}/../../../../devel/setup.bash
 
 #=============================================================
 #=============================================================
 #=============================================================
-
 
 # estimator configurations
 modes=(
@@ -40,41 +39,30 @@ bagstarttimes=(
   "0"
   "0"
   "0"
-  "40"
-  "35"
-  "10"
-  "17"
-  "18"
+  "40" # 40
+  "35" # 35
+  "5" # 10
+  "10" # 17
+  "5" # 18
 )
 
-# threshold for variance to detect if the unit has moved yet
-imuthreshold=(
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-  "1.5"
-)
 
 # location to save log files into
-save_path1="/home/patrick/github/pubs_data/pgeneva/2020_openvins_2.3.1/exp_euroc/algorithms"
-bag_path="/media/patrick/RPNG\ FLASH\ 2/euroc"
+save_path1="/home/patrick/github/pubs_data/pgeneva/2022_openvins_test/exp_euroc/algorithms"
+save_path2="/home/patrick/github/pubs_data/pgeneva/2022_openvins_test/exp_euroc/timings"
+bag_path="/media/patrick/RPNG FLASH 3/euroc_mav/"
+ov_ver="2.6.2"
+
 
 
 #=============================================================
 #=============================================================
 #=============================================================
 
-
-# Loop through all modes
-for h in "${!modes[@]}"; do
 # Loop through all datasets
 for i in "${!bagnames[@]}"; do
+# Loop through all modes
+for h in "${!modes[@]}"; do
 
 # Monte Carlo runs for this dataset
 # If you want more runs, change the below loop
@@ -82,7 +70,8 @@ for j in {00..00}; do
 
 # start timing
 start_time="$(date -u +%s)"
-filename_est="$save_path1/ov_2.3.1_${modes[h]}/${bagnames[i]}/${start_time}_estimate.txt"
+filename_est="$save_path1/ov_${ov_ver}_${modes[h]}/${bagnames[i]}/${j}_estimate.txt"
+filename_time="$save_path2/ov_${ov_ver}_${modes[h]}/${bagnames[i]}/${j}_timing.txt"
 
 # number of cameras
 if [ "${modes[h]}" == "mono" ]
@@ -102,14 +91,20 @@ then
 fi
 
 # run our ROS launch file (note we send console output to terminator)
-roslaunch ov_msckf pgeneva_ros_eth.launch \
+# subscribe=live pub, serial=read from bag (fast)
+roslaunch ov_msckf serial.launch \
   max_cameras:="$temp1" \
   use_stereo:="$temp2" \
+  config:="euroc_mav" \
+  dataset:="${bagnames[i]}" \
   bag:="$bag_path/${bagnames[i]}.bag" \
   bag_start:="${bagstarttimes[i]}" \
-  init_imu_thresh:="${imuthreshold[i]}" \
+  dobag:="true" \
   dosave:="true" \
-  path_est:="$filename_est" &> /dev/null
+  path_est:="$filename_est" \
+  dotime:="true" \
+  dolivetraj:="true" \
+  path_time:="$filename_time" &> /dev/null
 
 # print out the time elapsed
 end_time="$(date -u +%s)"

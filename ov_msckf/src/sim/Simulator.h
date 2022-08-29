@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OV_MSCKF_SIMULATOR_H
 #define OV_MSCKF_SIMULATOR_H
 
@@ -32,10 +31,10 @@
 #include <unordered_map>
 
 #include "core/VioManagerOptions.h"
-#include "sim/BsplineSE3.h"
-#include "utils/colors.h"
 
-using namespace ov_core;
+namespace ov_core {
+class BsplineSE3;
+} // namespace ov_core
 
 namespace ov_msckf {
 
@@ -58,6 +57,13 @@ public:
    * @param params_ VioManager parameters. Should have already been loaded from cmd.
    */
   Simulator(VioManagerOptions &params_);
+
+  /**
+   * @brief Will get a set of perturbed parameters
+   * @param gen_state Random number gen to use
+   * @param params_ Parameters we will perturb
+   */
+  static void perturb_parameters(std::mt19937 gen_state, VioManagerOptions &params_);
 
   /**
    * @brief Returns if we are actively simulating
@@ -100,16 +106,18 @@ public:
   /// Returns the true 3d map of features
   std::unordered_map<size_t, Eigen::Vector3d> get_map() { return featmap; }
 
+  /// Returns the true 3d map of features
+  std::vector<Eigen::Vector3d> get_map_vec() {
+    std::vector<Eigen::Vector3d> feats;
+    for (auto const &feat : featmap)
+      feats.push_back(feat.second);
+    return feats;
+  }
+
   /// Access function to get the true parameters (i.e. calibration and settings)
-  VioManagerOptions get_true_paramters() { return params; }
+  VioManagerOptions get_true_parameters() { return params; }
 
 protected:
-  /**
-   * @brief This will load the trajectory into memory.
-   * @param path_traj Path to the trajectory file that we want to read in.
-   */
-  void load_data(std::string path_traj);
-
   /**
    * @brief Projects the passed map features into the desired camera frame.
    * @param R_GtoI Orientation of the IMU pose
@@ -147,7 +155,7 @@ protected:
   std::vector<Eigen::VectorXd> traj_data;
 
   /// Our b-spline trajectory
-  BsplineSE3 spline;
+  std::shared_ptr<ov_core::BsplineSE3> spline;
 
   /// Our map of 3d features
   size_t id_map = 0;
@@ -188,6 +196,7 @@ protected:
   Eigen::Vector3d true_bias_gyro = Eigen::Vector3d::Zero();
 
   // Our history of true biases
+  bool has_skipped_first_bias = false;
   std::vector<double> hist_true_bias_time;
   std::vector<Eigen::Vector3d> hist_true_bias_accel;
   std::vector<Eigen::Vector3d> hist_true_bias_gyro;

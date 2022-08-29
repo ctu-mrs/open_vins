@@ -1,9 +1,9 @@
 /*
  * OpenVINS: An Open Platform for Visual-Inertial Research
- * Copyright (C) 2021 Patrick Geneva
- * Copyright (C) 2021 Guoquan Huang
- * Copyright (C) 2021 OpenVINS Contributors
- * Copyright (C) 2019 Kevin Eckenhoff
+ * Copyright (C) 2018-2022 Patrick Geneva
+ * Copyright (C) 2018-2022 Guoquan Huang
+ * Copyright (C) 2018-2022 OpenVINS Contributors
+ * Copyright (C) 2018-2019 Kevin Eckenhoff
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "BsplineSE3.h"
 
 using namespace ov_core;
@@ -33,7 +32,7 @@ void BsplineSE3::feed_trajectory(std::vector<Eigen::VectorXd> traj_points) {
   }
   dt = sumdt / (traj_points.size() - 1);
   dt = (dt < 0.05) ? 0.05 : dt;
-  printf("[B-SPLINE]: control point dt = %.3f (original dt of %.3f)\n", dt, sumdt / (traj_points.size() - 1));
+  PRINT_DEBUG("[B-SPLINE]: control point dt = %.3f (original dt of %.3f)\n", dt, sumdt / (traj_points.size() - 1));
 
   // convert all our trajectory points into SE(3) matrices
   // we are given [timestamp, p_IinG, q_GtoI]
@@ -56,8 +55,8 @@ void BsplineSE3::feed_trajectory(std::vector<Eigen::VectorXd> traj_points) {
       timestamp_max = pose.first;
     }
   }
-  printf("[B-SPLINE]: trajectory start time = %.6f\n", timestamp_min);
-  printf("[B-SPLINE]: trajectory end time = %.6f\n", timestamp_max);
+  PRINT_DEBUG("[B-SPLINE]: trajectory start time = %.6f\n", timestamp_min);
+  PRINT_DEBUG("[B-SPLINE]: trajectory end time = %.6f\n", timestamp_max);
 
   // then create spline control points
   double timestamp_curr = timestamp_min;
@@ -67,7 +66,7 @@ void BsplineSE3::feed_trajectory(std::vector<Eigen::VectorXd> traj_points) {
     double t0, t1;
     Eigen::Matrix4d pose0, pose1;
     bool success = find_bounding_poses(timestamp_curr, trajectory_points, t0, pose0, t1, pose1);
-    // printf("[SIM]: time curr = %.6f | lambda = %.3f | dt = %.3f | dtmeas =
+    // PRINT_DEBUG("[SIM]: time curr = %.6f | lambda = %.3f | dt = %.3f | dtmeas =
     // %.3f\n",timestamp_curr,(timestamp_curr-t0)/(t1-t0),dt,(t1-t0));
 
     // If we didn't find a bounding pose, then that means we are at the end of the dataset
@@ -80,12 +79,14 @@ void BsplineSE3::feed_trajectory(std::vector<Eigen::VectorXd> traj_points) {
     Eigen::Matrix4d pose_interp = exp_se3(lambda * log_se3(pose1 * Inv_se3(pose0))) * pose0;
     control_points.insert({timestamp_curr, pose_interp});
     timestamp_curr += dt;
-    // std::cout << pose_interp(0,3) << "," << pose_interp(1,3) << "," << pose_interp(2,3) << std::endl;
+    // std::stringstream ss;
+    // ss << pose_interp(0,3) << "," << pose_interp(1,3) << "," << pose_interp(2,3) << std::endl;
+    // PRINT_DEBUG(ss.str().c_str());
   }
 
   // The start time of the system is two dt in since we need at least two older control points
   timestamp_start = timestamp_min + 2 * dt;
-  printf("[B-SPLINE]: start trajectory time of %.6f\n", timestamp_start);
+  PRINT_DEBUG("[B-SPLINE]: start trajectory time of %.6f\n", timestamp_start);
 }
 
 bool BsplineSE3::get_pose(double timestamp, Eigen::Matrix3d &R_GtoI, Eigen::Vector3d &p_IinG) {
@@ -94,7 +95,7 @@ bool BsplineSE3::get_pose(double timestamp, Eigen::Matrix3d &R_GtoI, Eigen::Vect
   double t0, t1, t2, t3;
   Eigen::Matrix4d pose0, pose1, pose2, pose3;
   bool success = find_bounding_control_points(timestamp, control_points, t0, pose0, t1, pose1, t2, pose2, t3, pose3);
-  // printf("[SIM]: time curr = %.6f | dt1 = %.3f | dt2 = %.3f | dt3 = %.3f | dt4 = %.3f | success =
+  // PRINT_DEBUG("[SIM]: time curr = %.6f | dt1 = %.3f | dt2 = %.3f | dt3 = %.3f | dt4 = %.3f | success =
   // %d\n",timestamp,t0-timestamp,t1-timestamp,t2-timestamp,t3-timestamp,(int)success);
 
   // Return failure if we can't get bounding poses
@@ -130,7 +131,7 @@ bool BsplineSE3::get_velocity(double timestamp, Eigen::Matrix3d &R_GtoI, Eigen::
   double t0, t1, t2, t3;
   Eigen::Matrix4d pose0, pose1, pose2, pose3;
   bool success = find_bounding_control_points(timestamp, control_points, t0, pose0, t1, pose1, t2, pose2, t3, pose3);
-  // printf("[SIM]: time curr = %.6f | dt1 = %.3f | dt2 = %.3f | dt3 = %.3f | dt4 = %.3f | success =
+  // PRINT_DEBUG("[SIM]: time curr = %.6f | dt1 = %.3f | dt2 = %.3f | dt3 = %.3f | dt4 = %.3f | success =
   // %d\n",timestamp,t0-timestamp,t1-timestamp,t2-timestamp,t3-timestamp,(int)success);
 
   // Return failure if we can't get bounding poses
