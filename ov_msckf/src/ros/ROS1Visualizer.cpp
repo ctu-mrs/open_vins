@@ -301,10 +301,12 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
   auto odom_pose = std::make_shared<ov_type::PoseJPL>();
   odom_pose->set_value(state_plus.block(0, 0, 7, 1));
   tf::StampedTransform trans = ROSVisualizerHelper::get_stamped_transform_from_pose(odom_pose, false);
-  trans.frame_id_ = "global";
-  trans.child_frame_id_ = "imu";
+  /* trans.frame_id_ = "global"; */
+  /* trans.child_frame_id_ = "imu"; */
+  tf::Transform trans_inv = trans.inverse();
+  tf::StampedTransform tf_temp(trans_inv, trans.stamp_, "imu", "global");
   if (publish_global2imu_tf) {
-    mTfBr->sendTransform(trans);
+    mTfBr->sendTransform(tf_temp);
   }
 
   // Loop through each camera calibration and publish it
