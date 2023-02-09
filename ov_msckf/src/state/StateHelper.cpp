@@ -614,6 +614,7 @@ void StateHelper::augment_clone(std::shared_ptr<State> state, Eigen::Matrix<doub
 void StateHelper::marginalize_old_clone(std::shared_ptr<State> state) {
   if ((int)state->_clones_IMU.size() > state->_options.max_clone_size) {
     double marginal_time = state->margtimestep();
+    std::lock_guard<std::mutex> lock(state->_mutex_state);
     assert_r(marginal_time != INFINITY);
     StateHelper::marginalize(state, state->_clones_IMU.at(marginal_time));
     // Note that the marginalizer should have already deleted the clone
