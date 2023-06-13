@@ -12,7 +12,7 @@ cam0:
   distortion_model: equidistant
   intrinsics: [284.378601074219,285.364898681641, 423.223510742188, 402.276000976562] #fu, fv, cu, cv
   resolution: [848, 800]
-  rostopic: /uav35/t265/fisheye1/image_raw
+  # rostopic: /uav35/t265/fisheye1/image_raw
 cam1:
   T_imu_cam: #rotation from camera to IMU R_CtoI, position of camera in IMU p_CinI
     - [-0.999979, -0.0022358, 0.00603111, -0.0537273213267326]
@@ -25,4 +25,4 @@ cam1:
   distortion_model: equidistant
   intrinsics: [285.629211425781, 286.654602050781, 433.148193359375, 403.567413330078] #fu, fv, cu, cv
   resolution: [848, 800]
-  rostopic: /uav35/t265/fisheye2/image_raw
+  # rostopic: /uav35/t265/fisheye2/image_raw

@@ -153,7 +153,7 @@ void ROS1Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   // Create imu subscriber (handle legacy ros param info)
   std::string topic_imu;
   _nh->param<std::string>("topic_imu", topic_imu, "/imu0");
-  parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
+  /* parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu); */
   sub_imu = _nh->subscribe(topic_imu, 1000, &ROS1Visualizer::callback_inertial, this);
   PRINT_INFO("subscribing to IMU: %s\n", topic_imu.c_str());
 
@@ -164,8 +164,8 @@ void ROS1Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
     std::string cam_topic0, cam_topic1;
     _nh->param<std::string>("topic_camera" + std::to_string(0), cam_topic0, "/cam" + std::to_string(0) + "/image_raw");
     _nh->param<std::string>("topic_camera" + std::to_string(1), cam_topic1, "/cam" + std::to_string(1) + "/image_raw");
-    parser->parse_external("relative_config_imucam", "cam" + std::to_string(0), "rostopic", cam_topic0);
-    parser->parse_external("relative_config_imucam", "cam" + std::to_string(1), "rostopic", cam_topic1);
+    /* parser->parse_external("relative_config_imucam", "cam" + std::to_string(0), "rostopic", cam_topic0); */
+    /* parser->parse_external("relative_config_imucam", "cam" + std::to_string(1), "rostopic", cam_topic1); */
     // Create sync filter (they have unique pointers internally, so we have to use move logic here...)
     auto image_sub0 = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(*_nh, cam_topic0, 1);
     auto image_sub1 = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(*_nh, cam_topic1, 1);
@@ -183,7 +183,7 @@ void ROS1Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
       // read in the topic
       std::string cam_topic;
       _nh->param<std::string>("topic_camera" + std::to_string(i), cam_topic, "/cam" + std::to_string(i) + "/image_raw");
-      parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "rostopic", cam_topic);
+      /* parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "rostopic", cam_topic); */
       // create subscriber
       subs_cam.push_back(_nh->subscribe<sensor_msgs::Image>(cam_topic, 10, boost::bind(&ROS1Visualizer::callback_monocular, this, _1, i)));
       PRINT_INFO("subscribing to cam (mono): %s\n", cam_topic.c_str());
