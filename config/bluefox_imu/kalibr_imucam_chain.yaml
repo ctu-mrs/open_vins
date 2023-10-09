@@ -12,4 +12,4 @@ cam0:
   distortion_model: equidistant
   intrinsics: [218.62328342963636,218.84544019573178, 374.186243114997, 203.57046644527676] #fu, fv, cu, cv
   resolution: [752, 480]
-  rostopic: /mv_25003659/image_raw
+  # rostopic: /mv_25003659/image_raw
