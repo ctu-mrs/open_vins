@@ -14,4 +14,4 @@ imu0:
   # rostopic: /uav0/vio/imu
   time_offset: 0.0
   # update_rate: 200.0
-  update_rate: 1000.0
+  update_rate: 125.0
