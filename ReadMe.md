@@ -1,8 +1,11 @@
-# OpenVINS
+# OpenVINS (fork)
 
-[![ROS 1 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml)
-[![ROS 2 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros2.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros2.yml)
-[![ROS Free Workflow](https://github.com/rpng/open_vins/actions/workflows/build.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build.yml)
+## Changes from the original repository
+* using `/UAV_NAME/` namespace for IMU and camera topic names, setting these topic names in launch files
+* flipped the published TF tree to be compatible with the [MRS system TF tree](https://ctu-mrs.github.io/docs/system/frames_of_reference.html)
+* custom configs and launch files
+
+## Original readme
 
 Welcome to the OpenVINS project!
 The OpenVINS project houses some core computer vision code along with a state-of-the art filter-based visual-inertial
