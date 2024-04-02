@@ -176,7 +176,7 @@ void TrackBase::display_history(cv::Mat &img_out, int r1, int g1, int b1, int r2
     img_out = cv::Mat(max_height, (int)img_last_cache.size() * max_width, CV_8UC3, cv::Scalar(0, 0, 0));
 
   // Max tracks to show (otherwise it clutters up the screen)
-  size_t maxtracks = 50;
+  size_t maxtracks = 1000;
 
   // Loop through each image, and draw
   int index_cam = 0;
