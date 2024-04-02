@@ -105,6 +105,8 @@ public:
    */
   virtual void display_active(cv::Mat &img_out, int r1, int g1, int b1, int r2, int g2, int b2, std::string overlay = "");
 
+
+  size_t get_num_tracks();
   /**
    * @brief Shows a "trail" for each feature (i.e. its history)
    * @param img_out image to which we will overlayed features on

@@ -116,6 +116,25 @@ void TrackBase::display_active(cv::Mat &img_out, int r1, int g1, int b1, int r2,
   }
 }
 
+size_t TrackBase::get_num_tracks() {
+
+  std::map<size_t, cv::Mat> img_last_cache;
+  std::unordered_map<size_t, std::vector<size_t>> ids_last_cache;
+  {
+    std::lock_guard<std::mutex> lckv(mtx_last_vars);
+    img_last_cache = img_last;
+    ids_last_cache = ids_last;
+  }
+
+  size_t num_tracks = 0;
+
+  for (auto const &pair : img_last_cache) {
+    num_tracks += ids_last_cache[pair.first].size();
+  }
+
+  return num_tracks;
+}
+
 void TrackBase::display_history(cv::Mat &img_out, int r1, int g1, int b1, int r2, int g2, int b2, std::vector<size_t> highlighted,
                                 std::string overlay) {
 
