@@ -80,6 +80,8 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
   it_pub_loop_img_depth = it.advertise("loop_depth", 2);
   it_pub_loop_img_depth_color = it.advertise("loop_depth_colored", 2);
 
+  pub_process_hz = nh->advertise<std_msgs::Float64>("process_hz", 2);
+
   // option to enable publishing of global to IMU transformation
   nh->param<bool>("publish_global_to_imu_tf", publish_global2imu_tf, true);
   nh->param<bool>("publish_calibration_tf", publish_calibration_tf, true);
@@ -145,6 +147,24 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
       }
     });
     thread.detach();
+
+    std::thread thread_pub_hz([&] {
+      ros::Rate loop_rate(1);
+      while (ros::ok()) {
+        if (_app->num_imgs_processed > 0) {
+          boost::posix_time::ptime t_now = boost::posix_time::microsec_clock::local_time();
+          double dt = (t_now - t_pub_hz_last).total_microseconds() * 1e-6;
+          double avg_hz = _app->num_imgs_processed /dt;
+          t_pub_hz_last = t_now;
+          _app->num_imgs_processed = 0;
+          std_msgs::Float64 msg_hz;
+          msg_hz.data = avg_hz;
+          pub_process_hz.publish(msg_hz);
+          loop_rate.sleep();
+        }
+      }
+    });
+    thread_pub_hz.detach();
   }
 }
 
