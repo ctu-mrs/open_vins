@@ -25,49 +25,54 @@
 #include "core/VioManagerOptions.h"
 #include "utils/dataset_reader.h"
 
+#if ROS_AVAILABLE == 1
 #include "ros/ROS1Visualizer.h"
 #include <ros/ros.h>
-#include <nodelet/nodelet.h>
+#elif ROS_AVAILABLE == 2
+#include "ros/ROS2Visualizer.h"
+#include <rclcpp/rclcpp.hpp>
+#endif
 
 using namespace ov_msckf;
 
-namespace run_subscribe_msckf {
+std::shared_ptr<VioManager> sys;
+#if ROS_AVAILABLE == 1
+std::shared_ptr<ROS1Visualizer> viz;
+#elif ROS_AVAILABLE == 2
+std::shared_ptr<ROS2Visualizer> viz;
+#endif
 
-class RunSubscribeMsckf : public nodelet::Nodelet {
-
-public:
-  virtual void onInit();
-
-private:
-  std::shared_ptr<VioManager> sys;
-  std::shared_ptr<ROS1Visualizer> viz;
-  std::shared_ptr<ros::NodeHandle> nh_ptr;
-};
-
-/* main //{ */
-
-void RunSubscribeMsckf::onInit() {
+// Main function
+int main(int argc, char **argv) {
 
   // Ensure we have a path, if the user passes it then we should use it
   std::string config_path = "unset_path_to_config.yaml";
-  /* if (argc > 1) { */
-  /*   config_path = argv[1]; */
-  /* } */
+  if (argc > 1) {
+    config_path = argv[1];
+  }
 
-  /* // Launch our ros node */
-  /* ros::init(argc, argv, "run_subscribe_msckf"); */
-
-  ros::NodeHandle nh = nodelet::Nodelet::getMTPrivateNodeHandle();
-  ros::Time::waitForValid();
-
-  nh.param<std::string>("config_path", config_path, config_path);
+#if ROS_AVAILABLE == 1
+  // Launch our ros node
+  ros::init(argc, argv, "run_subscribe_msckf");
+  auto nh = std::make_shared<ros::NodeHandle>("~");
+  nh->param<std::string>("config_path", config_path, config_path);
+#elif ROS_AVAILABLE == 2
+  // Launch our ros node
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  options.allow_undeclared_parameters(true);
+  options.automatically_declare_parameters_from_overrides(true);
+  auto node = std::make_shared<rclcpp::Node>("run_subscribe_msckf", options);
+  node->get_parameter<std::string>("config_path", config_path);
+#endif
 
   // Load the config
   auto parser = std::make_shared<ov_core::YamlParser>(config_path);
-
-
-  nh_ptr = std::make_shared<ros::NodeHandle>(nh);
-  parser->set_node_handler(nh_ptr);
+#if ROS_AVAILABLE == 1
+  parser->set_node_handler(nh);
+#elif ROS_AVAILABLE == 2
+  parser->set_node(node);
+#endif
 
   // Verbosity
   std::string verbosity = "DEBUG";
@@ -79,8 +84,13 @@ void RunSubscribeMsckf::onInit() {
   params.print_and_load(parser);
   params.use_multi_threading_subs = true;
   sys = std::make_shared<VioManager>(params);
-  viz = std::make_shared<ROS1Visualizer>(nh_ptr, sys);
+#if ROS_AVAILABLE == 1
+  viz = std::make_shared<ROS1Visualizer>(nh, sys);
   viz->setup_subscribers(parser);
+#elif ROS_AVAILABLE == 2
+  viz = std::make_shared<ROS2Visualizer>(node, sys);
+  viz->setup_subscribers(parser);
+#endif
 
   // Ensure we read in all parameters required
   if (!parser->successful()) {
@@ -90,23 +100,26 @@ void RunSubscribeMsckf::onInit() {
 
   // Spin off to ROS
   PRINT_DEBUG("done...spinning to ros\n");
+#if ROS_AVAILABLE == 1
   // ros::spin();
-  /* ros::AsyncSpinner spinner(0); */
-  /* spinner.start(); */
-  /* ros::waitForShutdown(); */
+  ros::AsyncSpinner spinner(0);
+  spinner.start();
+  ros::waitForShutdown();
+#elif ROS_AVAILABLE == 2
+  // rclcpp::spin(node);
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin();
+#endif
 
   // Final visualization
-  /* viz->visualize_final(); */
-  /* ros::shutdown(); */
+  viz->visualize_final();
+#if ROS_AVAILABLE == 1
+  ros::shutdown();
+#elif ROS_AVAILABLE == 2
+  rclcpp::shutdown();
+#endif
 
   // Done!
-  /* return EXIT_SUCCESS; */
+  return EXIT_SUCCESS;
 }
-
-//}
-
-} // namespace run_subscribe_msckf
-
-/* every nodelet must include macros which export the class as a nodelet plugin */
-#include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(run_subscribe_msckf::RunSubscribeMsckf, nodelet::Nodelet);

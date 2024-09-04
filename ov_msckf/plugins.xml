@@ -1,0 +1,5 @@
+<library path="lib/libRunSubscribeMsckf">
+  <class name="run_subscribe_msckf/RunSubscribeMsckf" type="run_subscribe_msckf::RunSubscribeMsckf" base_class_type="nodelet::Nodelet">
+    <description>RunSubscribeMsckf nodelet</description>
+  </class>
+</library>

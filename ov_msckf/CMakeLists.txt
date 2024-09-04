@@ -10,6 +10,8 @@ if (NOT OpenCV_FOUND)
 endif ()
 find_package(Boost REQUIRED COMPONENTS system filesystem thread date_time)
 find_package(Ceres REQUIRED)
+find_package(nodelet REQUIRED)
+
 message(STATUS "OPENCV: " ${OpenCV_VERSION} " | BOOST: " ${Boost_VERSION} " | CERES: " ${Ceres_VERSION})
 
 # If we will compile with aruco support
