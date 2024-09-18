@@ -82,6 +82,9 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
 
   pub_process_hz = nh->advertise<std_msgs::Float64>("process_hz", 2);
 
+  // get UAV name
+  nh->param<std::string>("uav_name", _uav_name_, "uav");
+
   // option to enable publishing of global to IMU transformation
   nh->param<bool>("publish_global_to_imu_tf", publish_global2imu_tf, true);
   nh->param<bool>("publish_calibration_tf", publish_calibration_tf, true);
@@ -307,7 +310,7 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
 
     nav_msgs::Odometry odomIinM;
     odomIinM.header.stamp = ros::Time(timestamp);
-    odomIinM.header.frame_id = "global";
+    odomIinM.header.frame_id = _uav_name_ + "/ov_global";
 
     // The POSE component (orientation and position)
     odomIinM.pose.pose.orientation.x = state_plus(0);
@@ -319,7 +322,7 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
     odomIinM.pose.pose.position.z = state_plus(6);
 
     // The TWIST component (angular and linear velocities)
-    odomIinM.child_frame_id = "imu";
+    odomIinM.child_frame_id = _uav_name_ + "/ov_imu";
     odomIinM.twist.twist.linear.x = state_plus(7);   // vel in local frame
     odomIinM.twist.twist.linear.y = state_plus(8);   // vel in local frame
     odomIinM.twist.twist.linear.z = state_plus(9);   // vel in local frame
@@ -355,7 +358,7 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
   /* trans.frame_id_ = "global"; */
   /* trans.child_frame_id_ = "imu"; */
   tf::Transform trans_inv = trans.inverse();
-  tf::StampedTransform tf_temp(trans_inv, trans.stamp_, "imu", "global");
+  tf::StampedTransform tf_temp(trans_inv, trans.stamp_, _uav_name_ + "/ov_imu", _uav_name_ + "/ov_global");
   if (publish_global2imu_tf) {
     mTfBr->sendTransform(tf_temp);
   }
@@ -363,8 +366,8 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
   // Loop through each camera calibration and publish it
   for (const auto &calib : state->_calib_IMUtoCAM) {
     tf::StampedTransform trans_calib = ROSVisualizerHelper::get_stamped_transform_from_pose(calib.second, true);
-    trans_calib.frame_id_ = "imu";
-    trans_calib.child_frame_id_ = "cam" + std::to_string(calib.first);
+    trans_calib.frame_id_ = _uav_name_ + "/ov_imu";
+    trans_calib.child_frame_id_ = _uav_name_ + "/ov_cam" + std::to_string(calib.first);
     if (publish_calibration_tf) {
       mTfBr->sendTransform(trans_calib);
     }
@@ -624,7 +627,7 @@ void ROS1Visualizer::publish_state() {
   geometry_msgs::PoseWithCovarianceStamped poseIinM;
   poseIinM.header.stamp = ros::Time(timestamp_inI);
   poseIinM.header.seq = poses_seq_imu;
-  poseIinM.header.frame_id = "global";
+  poseIinM.header.frame_id = _uav_name_ + "/ov_global";
   poseIinM.pose.pose.orientation.x = state->_imu->quat()(0);
   poseIinM.pose.pose.orientation.y = state->_imu->quat()(1);
   poseIinM.pose.pose.orientation.z = state->_imu->quat()(2);
@@ -660,7 +663,7 @@ void ROS1Visualizer::publish_state() {
   nav_msgs::Path arrIMU;
   arrIMU.header.stamp = ros::Time::now();
   arrIMU.header.seq = poses_seq_imu;
-  arrIMU.header.frame_id = "global";
+  arrIMU.header.frame_id = _uav_name_ + "/ov_global";
   for (size_t i = 0; i < poses_imu.size(); i += std::floor((double)poses_imu.size() / 16384.0) + 1) {
     arrIMU.poses.push_back(poses_imu.at(i));
   }
@@ -691,7 +694,7 @@ void ROS1Visualizer::publish_images() {
   // Create our message
   std_msgs::Header header;
   header.stamp = ros::Time::now();
-  header.frame_id = "cam0";
+  header.frame_id = _uav_name_ + "/ov_cam0";
   sensor_msgs::ImagePtr exl_msg = cv_bridge::CvImage(header, "bgr8", img_history).toImageMsg();
 
   // Publish
@@ -708,16 +711,19 @@ void ROS1Visualizer::publish_features() {
   // Get our good MSCKF features
   std::vector<Eigen::Vector3d> feats_msckf = _app->get_good_features_MSCKF();
   sensor_msgs::PointCloud2 cloud = ROSVisualizerHelper::get_ros_pointcloud(feats_msckf);
+  cloud.header.frame_id = _uav_name_ + "/ov_global";
   pub_points_msckf.publish(cloud);
 
   // Get our good SLAM features
   std::vector<Eigen::Vector3d> feats_slam = _app->get_features_SLAM();
   sensor_msgs::PointCloud2 cloud_SLAM = ROSVisualizerHelper::get_ros_pointcloud(feats_slam);
+  cloud_SLAM.header.frame_id = _uav_name_ + "/ov_global";
   pub_points_slam.publish(cloud_SLAM);
 
   // Get our good ARUCO features
   std::vector<Eigen::Vector3d> feats_aruco = _app->get_features_ARUCO();
   sensor_msgs::PointCloud2 cloud_ARUCO = ROSVisualizerHelper::get_ros_pointcloud(feats_aruco);
+  cloud_ARUCO.header.frame_id = _uav_name_ + "/ov_global";
   pub_points_aruco.publish(cloud_ARUCO);
 
   // Skip the rest of we are not doing simulation
@@ -760,7 +766,7 @@ void ROS1Visualizer::publish_groundtruth() {
   geometry_msgs::PoseStamped poseIinM;
   poseIinM.header.stamp = ros::Time(timestamp_inI);
   poseIinM.header.seq = poses_seq_gt;
-  poseIinM.header.frame_id = "global";
+  poseIinM.header.frame_id = _uav_name_ + "/ov_global";
   poseIinM.pose.orientation.x = state_gt(1, 0);
   poseIinM.pose.orientation.y = state_gt(2, 0);
   poseIinM.pose.orientation.z = state_gt(3, 0);
@@ -779,7 +785,7 @@ void ROS1Visualizer::publish_groundtruth() {
   nav_msgs::Path arrIMU;
   arrIMU.header.stamp = ros::Time::now();
   arrIMU.header.seq = poses_seq_gt;
-  arrIMU.header.frame_id = "global";
+  arrIMU.header.frame_id = _uav_name_ + "/ov_global";
   for (size_t i = 0; i < poses_gt.size(); i += std::floor((double)poses_gt.size() / 16384.0) + 1) {
     arrIMU.poses.push_back(poses_gt.at(i));
   }
@@ -791,8 +797,8 @@ void ROS1Visualizer::publish_groundtruth() {
   // Publish our transform on TF
   tf::StampedTransform trans;
   trans.stamp_ = ros::Time::now();
-  trans.frame_id_ = "global";
-  trans.child_frame_id_ = "truth";
+  trans.frame_id_ = _uav_name_ + "/ov_global";
+  trans.child_frame_id_ = _uav_name_ + "/ov_truth";
   tf::Quaternion quat(state_gt(1, 0), state_gt(2, 0), state_gt(3, 0), state_gt(4, 0));
   trans.setRotation(quat);
   tf::Vector3 orig(state_gt(5, 0), state_gt(6, 0), state_gt(7, 0));
@@ -890,7 +896,7 @@ void ROS1Visualizer::publish_loopclosure_information() {
     // PUBLISH HISTORICAL POSE ESTIMATE
     nav_msgs::Odometry odometry_pose;
     odometry_pose.header = header;
-    odometry_pose.header.frame_id = "global";
+    odometry_pose.header.frame_id = _uav_name_ + "/ov_global";
     odometry_pose.pose.pose.position.x = pos(0);
     odometry_pose.pose.pose.position.y = pos(1);
     odometry_pose.pose.pose.position.z = pos(2);
@@ -906,7 +912,7 @@ void ROS1Visualizer::publish_loopclosure_information() {
     Eigen::Vector3d p_CinI = -_app->get_state()->_calib_IMUtoCAM.at(0)->Rot().transpose() * _app->get_state()->_calib_IMUtoCAM.at(0)->pos();
     nav_msgs::Odometry odometry_calib;
     odometry_calib.header = header;
-    odometry_calib.header.frame_id = "imu";
+    odometry_calib.header.frame_id = _uav_name_ + "/ov_imu";
     odometry_calib.pose.pose.position.x = p_CinI(0);
     odometry_calib.pose.pose.position.y = p_CinI(1);
     odometry_calib.pose.pose.position.z = p_CinI(2);
@@ -920,7 +926,7 @@ void ROS1Visualizer::publish_loopclosure_information() {
     bool is_fisheye = (std::dynamic_pointer_cast<ov_core::CamEqui>(_app->get_params().camera_intrinsics.at(0)) != nullptr);
     sensor_msgs::CameraInfo cameraparams;
     cameraparams.header = header;
-    cameraparams.header.frame_id = "cam0";
+    cameraparams.header.frame_id = _uav_name_ + "/ov_cam0";
     cameraparams.distortion_model = is_fisheye ? "equidistant" : "plumb_bob";
     Eigen::VectorXd cparams = _app->get_state()->_cam_intrinsics.at(0)->value();
     cameraparams.D = {cparams(4), cparams(5), cparams(6), cparams(7)};
@@ -935,7 +941,7 @@ void ROS1Visualizer::publish_loopclosure_information() {
     // Construct the message
     sensor_msgs::PointCloud point_cloud;
     point_cloud.header = header;
-    point_cloud.header.frame_id = "global";
+    point_cloud.header.frame_id = _uav_name_ + "/ov_global";
     for (const auto &feattimes : active_tracks_posinG) {
 
       // Get this feature information
@@ -1018,11 +1024,11 @@ void ROS1Visualizer::publish_loopclosure_information() {
     }
 
     // Create our messages
-    header.frame_id = "cam0";
+    header.frame_id = _uav_name_ + "/ov_cam0";
     sensor_msgs::ImagePtr exl_msg1 = cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_16UC1, depthmap).toImageMsg();
     it_pub_loop_img_depth.publish(exl_msg1);
     header.stamp = ros::Time::now();
-    header.frame_id = "cam0";
+    header.frame_id = _uav_name_ + "/ov_cam0";
     sensor_msgs::ImagePtr exl_msg2 = cv_bridge::CvImage(header, "bgr8", depthmap_viz).toImageMsg();
     it_pub_loop_img_depth_color.publish(exl_msg2);
   }
