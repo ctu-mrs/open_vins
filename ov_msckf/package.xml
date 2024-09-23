@@ -35,6 +35,7 @@
     <depend condition="$ROS_VERSION == 1">cv_bridge</depend>
     <depend condition="$ROS_VERSION == 1">ov_core</depend>
     <depend condition="$ROS_VERSION == 1">ov_init</depend>
+    <depend condition="$ROS_VERSION == 1">nodelet</depend>
 
     <!-- ROS2: Dependencies needed to compile this package. -->
     <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
@@ -62,7 +63,10 @@
         <build_type condition="$ROS_VERSION == 1">catkin</build_type>
         <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
         <rosdoc config="rosdoc.yaml" />
+        <nodelet plugin="${prefix}/plugins.xml" />
+
     </export>
+
 
     <!-- These are really "soft" dependencies, and are just required if you need them for launch... -->
     <!--    <depend condition="$ROS_VERSION == 1">ov_eval</depend>-->
