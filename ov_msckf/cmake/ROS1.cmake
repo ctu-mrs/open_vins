@@ -138,6 +138,10 @@ if (catkin_FOUND AND ENABLE_ROS)
             DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
     )
 
+    install(FILES plugins.xml
+      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+    )
+
 endif ()
 
 add_executable(run_simulation src/run_simulation.cpp)
