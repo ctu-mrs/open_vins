@@ -57,6 +57,18 @@ public:
 #if ENABLE_ARUCO_TAGS
     aruco_dict = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_1000);
     aruco_params = cv::aruco::DetectorParameters::create();
+    
+    aruco_params->adaptiveThreshWinSizeMin = 3; // default 3
+    aruco_params->adaptiveThreshWinSizeMax = 23; // default 23
+    aruco_params->adaptiveThreshWinSizeStep = 10; // default 10
+    aruco_params->minMarkerPerimeterRate = 0.03; // default 0.03
+    aruco_params->maxMarkerPerimeterRate = 4.0; // default 4
+    aruco_params->polygonalApproxAccuracyRate = 0.03; // default 0.03
+    aruco_params->minCornerDistanceRate = 0.05; // default 0.05
+    aruco_params->minDistanceToBorder = 3; // default 3
+    aruco_params->perspectiveRemoveIgnoredMarginPerCell = 0.13; // default 0.13
+
+
     // NOTE: people with newer opencv might fail here
     // aruco_params->cornerRefinementMethod = cv::aruco::CornerRefineMethod::CORNER_REFINE_SUBPIX;
 #else

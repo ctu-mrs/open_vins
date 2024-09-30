@@ -406,8 +406,8 @@ cv::Mat VioManager::get_historical_viz_image() {
   cv::Mat img_history;
   trackFEATS->display_history(img_history, 255, 255, 0, 255, 255, 255, highlighted_ids, overlay);
   if (trackARUCO != nullptr) {
-    trackARUCO->display_history(img_history, 0, 255, 255, 255, 255, 255, highlighted_ids, overlay);
-    // trackARUCO->display_active(img_history, 0, 255, 255, 255, 255, 255, overlay);
+    /* trackARUCO->display_history(img_history, 0, 255, 255, 255, 255, 255, highlighted_ids, overlay); */
+    trackARUCO->display_active(img_history, 0, 255, 255, 255, 255, 255, overlay);
   }
 
   // Finally return the image

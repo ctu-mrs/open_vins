@@ -100,6 +100,9 @@ void TrackAruco::perform_tracking(double timestamp, const cv::Mat &imgin, size_t
   //===================================================================================
   //===================================================================================
 
+  PRINT_DEBUG(BLUE "[ARUCO_TRACK]: detected %u aruco tags\n" RESET, ids_aruco[cam_id].size());
+  PRINT_DEBUG(BLUE "[ARUCO_TRACK]: rejected %u aruco tags\n" RESET, rejects[cam_id].size());
+
   // If we downsized, scale all our u,v measurements by a factor of two
   // Note: we do this so we can use these results for visulization later
   // Note: and so that the uv added is in the same image size
@@ -216,9 +219,17 @@ void TrackAruco::display_active(cv::Mat &img_out, int r1, int g1, int b1, int r2
       img_temp = img_out(cv::Rect(max_width * index_cam, 0, max_width, max_height));
     // draw...
     if (!ids_aruco_cache[pair.first].empty())
+      try {
       cv::aruco::drawDetectedMarkers(img_temp, corners_cache[pair.first], ids_aruco_cache[pair.first]);
+      } catch (...) {
+        PRINT_ERROR("exception caught while drawDetectedMarkers() corners\n");
+      }
     if (!rejects_cache[pair.first].empty())
+      try {
       cv::aruco::drawDetectedMarkers(img_temp, rejects_cache[pair.first], cv::noArray(), cv::Scalar(100, 0, 255));
+      } catch (...) {
+        PRINT_ERROR("exception caught while drawDetectedMarkers() rejects\n");
+      }
     // Draw what camera this is
     auto txtpt = (is_small) ? cv::Point(10, 30) : cv::Point(30, 60);
     if (overlay == "") {
