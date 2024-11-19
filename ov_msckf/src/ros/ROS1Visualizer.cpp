@@ -64,6 +64,8 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
 
   pub_num_points_slam = nh->advertise<std_msgs::Float64>("num_points_slam", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_num_points_slam.getTopic().c_str());
+  pub_status_num_points_slam = nh->advertise<std_msgs::String>("status_string", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_status_num_points_slam.getTopic().c_str());
   pub_num_points_msckf = nh->advertise<std_msgs::Float64>("num_points_msckf", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_num_points_msckf.getTopic().c_str());
 
@@ -86,6 +88,9 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
   it_pub_loop_img_depth_color = it.advertise("loop_depth_colored", 2);
 
   pub_process_hz = nh->advertise<std_msgs::Float64>("process_hz", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_process_hz.getTopic().c_str());
+  pub_status_process_hz = nh->advertise<std_msgs::String>("status_string", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_status_process_hz.getTopic().c_str());
 
   // get UAV name
   nh->param<std::string>("uav_name", _uav_name_, "uav");
@@ -168,6 +173,11 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
           std_msgs::Float64 msg_hz;
           msg_hz.data = avg_hz;
           pub_process_hz.publish(msg_hz);
+          std::stringstream ss_process_hz;
+          ss_process_hz << "Img proc: " << (int) avg_hz << " Hz";
+          std_msgs::String string_process_hz;
+          string_process_hz.data = ss_process_hz.str();
+          pub_status_process_hz.publish(string_process_hz);
           loop_rate.sleep();
         }
       }
@@ -732,6 +742,11 @@ void ROS1Visualizer::publish_features() {
   std_msgs::Float64 num_slam_points;
   num_slam_points.data = feats_slam.size();
   pub_num_points_slam.publish(num_slam_points);
+  std_msgs::String string_num_slam_points;
+  std::stringstream ss_num_slam_points;
+  ss_num_slam_points << "-id 1 SLAM feats: " << (int) feats_slam.size();
+  string_num_slam_points.data = ss_num_slam_points.str();
+  pub_status_num_points_slam.publish(string_num_slam_points);
 
   // Get our good ARUCO features
   std::vector<Eigen::Vector3d> feats_aruco = _app->get_features_ARUCO();

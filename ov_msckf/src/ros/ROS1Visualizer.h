@@ -39,6 +39,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
 #include <tf/transform_broadcaster.h>
 
 #include <atomic>
@@ -143,9 +144,9 @@ protected:
   image_transport::Publisher it_pub_tracks, it_pub_loop_img_depth, it_pub_loop_img_depth_color;
   ros::Publisher pub_poseimu, pub_odomimu, pub_pathimu;
   ros::Publisher pub_points_msckf, pub_points_slam, pub_points_aruco, pub_points_sim;
-  ros::Publisher pub_num_points_msckf, pub_num_points_slam;
+  ros::Publisher pub_num_points_msckf, pub_num_points_slam, pub_status_num_points_slam;
   ros::Publisher pub_loop_pose, pub_loop_point, pub_loop_extrinsic, pub_loop_intrinsics;
-  ros::Publisher pub_process_hz;
+  ros::Publisher pub_process_hz, pub_status_process_hz;
   std::shared_ptr<tf::TransformBroadcaster> mTfBr;
 
   // Our subscribers and camera synchronizers
