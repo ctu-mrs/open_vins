@@ -325,7 +325,7 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
 
     nav_msgs::Odometry odomIinM;
     odomIinM.header.stamp = ros::Time(timestamp);
-    odomIinM.header.frame_id = _uav_name_ + "/ov_global";
+    odomIinM.header.frame_id = _uav_name_ + "/vio_origin";
 
     // The POSE component (orientation and position)
     odomIinM.pose.pose.orientation.x = state_plus(0);
@@ -678,7 +678,8 @@ void ROS1Visualizer::publish_state() {
   nav_msgs::Path arrIMU;
   arrIMU.header.stamp = ros::Time::now();
   arrIMU.header.seq = poses_seq_imu;
-  arrIMU.header.frame_id = _uav_name_ + "/ov_global";
+  // arrIMU.header.frame_id = _uav_name_ + "/ov_global";
+  arrIMU.header.frame_id = _uav_name_ + "/vio_origin";
   for (size_t i = 0; i < poses_imu.size(); i += std::floor((double)poses_imu.size() / 16384.0) + 1) {
     arrIMU.poses.push_back(poses_imu.at(i));
   }
