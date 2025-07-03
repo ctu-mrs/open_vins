@@ -19,6 +19,50 @@ details on what the system supports.
 * Getting started guide - https://docs.openvins.com/getting-started.html
 * Publication reference - https://pgeneva.com/downloads/papers/Geneva2020ICRA.pdf
 
+## ROS2
+
+This fork can run under the ROS2 Jazzy. For now, it is necessary to build Ceres solver library 2.0.0 as ROS2 Jazzy runs on the Ubuntu 24.04 where only Ceres 2.2.0 is available. This is only temporary solution and it will be solved properly later.
+
+### Building Ceres 2.0.0
+
+First, we have to uninstall system-installed Ceres library:
+
+    sudo apt remove -y libceres*
+
+In order to build Ceres 2.0.0 on the Ubuntu 24.04, we have to build it without SuitSparse module:
+
+    cmake -DSUITESPARSE=OFF ..
+
+This is not because of the SuitSparse itself, but because SuitSparse requires another library (`tbb` - Threading Building Blocks), that is hard to install/build on the Ubuntu 24.04.
+
+Here is full bash script:
+
+    #!/bin/bash
+
+    sudo apt remove -y libceres*
+
+    git clone https://github.com/ceres-solver/ceres-solver.git
+    cd ceres-solver
+    touch COLCON_IGNORE # colcon tries to build this by default, we dont want that
+    git checkout 2.0.0
+
+    mkdir build
+    cd build
+    # cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DSUITESPARSE=OFF ..
+    cmake -DSUITESPARSE=OFF ..
+    make -j 10
+    sudo make install
+
+    cd ..
+
+There are two possible problems:
+  - Throwing out SuitSparse disables some matrix factorization methods. This can have impact on the performance/computational demands for bigger environments.
+  - You can have library conflict with newer Ceres versions if you happen to need them.
+
+Keep in mind this is not final solution. Final solution would be refactoring OpenVINS code, so it includes changes made between Ceres versions 2.0.0 and 2.1.0 ([see Ceres changelog](http://ceres-solver.org/version_history.html)). Particularly this point is relevant:
+
+    2. Manifold is the new LocalParameterization. Version 2.1 is the transition release where users can use both LocalParameterization as well as     Manifold objects as they transition from the former to the latter. LocalParameterization will be removed in version 2.2. There should be no numerical change to the results as a result of this change. (Sameer Agarwal, Johannes Beck, Sergiu Deitsch)
+
 ## News / Events
 
 * **May 11, 2023** - Inertial intrinsic support released as part of v2.7 along with a few bug fixes and improvements to stereo KLT tracking. Please check out the [release page](https://github.com/rpng/open_vins/releases/tag/v2.7) for details.
