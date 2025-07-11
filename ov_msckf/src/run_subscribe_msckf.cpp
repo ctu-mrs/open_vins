@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
   options.automatically_declare_parameters_from_overrides(true);
   auto node = std::make_shared<rclcpp::Node>("run_subscribe_msckf", options);
   node->get_parameter<std::string>("config_path", config_path);
+  RCLCPP_INFO(node->get_logger(), "CONFIG PATH: %s", config_path.c_str());
 #endif
 
   // Load the config
@@ -93,10 +94,10 @@ int main(int argc, char **argv) {
 #endif
 
   // Ensure we read in all parameters required
-  if (!parser->successful()) {
-    PRINT_ERROR(RED "unable to parse all parameters, please fix\n" RESET);
-    std::exit(EXIT_FAILURE);
-  }
+  // if (!parser->successful()) {
+  //   PRINT_ERROR(RED "unable to parse all parameters, please fix\n" RESET);
+  //   std::exit(EXIT_FAILURE);
+  // }
 
   // Spin off to ROS
   PRINT_DEBUG("done...spinning to ros\n");

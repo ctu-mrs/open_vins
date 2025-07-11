@@ -65,7 +65,7 @@ list(APPEND LIBRARY_SOURCES
         src/ceres/Factor_GenericPrior.cpp
         src/ceres/Factor_ImageReprojCalib.cpp
         src/ceres/Factor_ImuCPIv1.cpp
-        src/ceres/State_JPLQuatLocal.cpp
+        #src/ceres/State_JPLQuatLocal.cpp
         src/init/InertialInitializer.cpp
         src/dynamic/DynamicInitializer.cpp
         src/static/StaticInitializer.cpp
