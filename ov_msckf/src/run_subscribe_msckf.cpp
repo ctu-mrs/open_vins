@@ -94,10 +94,11 @@ int main(int argc, char **argv) {
 #endif
 
   // Ensure we read in all parameters required
-  // if (!parser->successful()) {
-  //   PRINT_ERROR(RED "unable to parse all parameters, please fix\n" RESET);
-  //   std::exit(EXIT_FAILURE);
-  // }
+  if (!parser->successful()) {
+    PRINT_ERROR(RED "unable to parse all parameters, please fix\n" RESET);
+    RCLCPP_ERROR(rclcpp::get_logger("run_subscribe_msckf"), "unable to parse all parameters, please fix");
+    std::exit(EXIT_FAILURE);
+  }
 
   // Spin off to ROS
   PRINT_DEBUG("done...spinning to ros\n");
