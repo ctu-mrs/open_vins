@@ -21,6 +21,18 @@ details on what the system supports.
 
 ## ROS2
 
+There are two ways tu run OpenVINS on ROS2 jazzy:
+  - building the refactored version using Ceres 2.2.0
+  - builing original version which requires building Ceres 2.0.0 before first
+
+### Refactored version
+
+This version is using the latest Ceres 2.2.0. Previous version (for ROS2 Humble) was using Ceres 2.0.0, which has different API. Api changed in version 2.2.1.0 while still supporting the 2.0.0 version API, which made it optional to migrate or stay with the old API. The old API was definitely removed in the Ceres 2.2.0. There not much changes in the code. The two changes are:
+  - changing some *.h* includes to *.hpp*
+  - replacement of *State_JPLQuatLocal* with *ceres::QuaternionManifold*. Original *State_JPLQuatLocal* was extending *ceres::LocalParameterization* which was in Ceres 2.2.0 replaced by *ceres::Manifold*. However, *ceres::Manifold* is abstract class. There are some drop-in replacements ready in Ceres 2.2.0, like *ceres::QuaternionManifold* we used. The only problem is that *ceres::QuaternionManifold* uses Hamiltonian quaternion notation, while the originally used *State_JPLQuatLocal* implemented JPL quaternion notation (implemented by authors). However, this change of notation should be fine - the way the math is defined should not have any effect on the results and the error term definition used by OpenVINS.
+
+## ROS2
+
 This fork can run under the ROS2 Jazzy. For now, it is necessary to build Ceres solver library 2.0.0 as ROS2 Jazzy runs on the Ubuntu 24.04 where only Ceres 2.2.0 is available. This is only temporary solution and it will be solved properly later.
 
 ### Building Ceres 2.0.0
