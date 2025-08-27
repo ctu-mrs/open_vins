@@ -55,6 +55,7 @@ class SubscribeMSCKF : public rclcpp::Node {
         std::string config_path;
 
         void timerInitialization() {
+            declare_parameter<std::string>("config_path");
             get_parameter<std::string>("config_path", config_path);
             RCLCPP_INFO(get_logger(), "CONFIG PATH: %s", config_path.c_str());
 

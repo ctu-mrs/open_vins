@@ -116,7 +116,7 @@ target_link_libraries(run_subscribe_msckf_composable_component ov_msckf_lib ${th
 #install(TARGETS run_subscribe_msckf_composable DESTINATION lib/${PROJECT_NAME})
 
 rclcpp_components_register_node(
-    run_subscribe_msckf_composable
+    run_subscribe_msckf_composable_component
     PLUGIN "msckf_component::SubscribeMSCKF"
     EXECUTABLE run_subscribe_msckf_composable
 )
@@ -126,7 +126,7 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 install(DIRECTORY ../config/ DESTINATION share/${PROJECT_NAME}/config/)
 
 install(TARGETS run_subscribe_msckf_composable_component
-  EXPORT run_subscribe_msckf_composable
+  EXPORT export_run_subscribe_msckf_composable
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
