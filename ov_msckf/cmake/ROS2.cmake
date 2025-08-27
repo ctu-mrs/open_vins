@@ -13,6 +13,7 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(ov_core REQUIRED)
 find_package(ov_init REQUIRED)
+find_package(rclcpp_components REQUIRED)
 
 # Describe ROS project
 option(ENABLE_ROS "Enable or disable building with ROS (if it is found)" ON)
@@ -47,6 +48,7 @@ list(APPEND ament_libraries
         image_transport
         ov_core
         ov_init
+        rclcpp_components
 )
 
 ##################################################
@@ -108,9 +110,27 @@ ament_target_dependencies(test_sim_repeat ${ament_libraries})
 target_link_libraries(test_sim_repeat ov_msckf_lib ${thirdparty_libraries})
 install(TARGETS test_sim_repeat DESTINATION lib/${PROJECT_NAME})
 
+add_library(run_subscribe_msckf_composable_component SHARED src/run_subscribe_msckf_component.cpp)
+ament_target_dependencies(run_subscribe_msckf_composable_component ${ament_libraries})
+target_link_libraries(run_subscribe_msckf_composable_component ov_msckf_lib ${thirdparty_libraries})
+#install(TARGETS run_subscribe_msckf_composable DESTINATION lib/${PROJECT_NAME})
+
+rclcpp_components_register_node(
+    run_subscribe_msckf_composable
+    PLUGIN "msckf_component::SubscribeMSCKF"
+    EXECUTABLE run_subscribe_msckf_composable
+)
+
 # Install launch and config directories
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 install(DIRECTORY ../config/ DESTINATION share/${PROJECT_NAME}/config/)
+
+install(TARGETS run_subscribe_msckf_composable_component
+  EXPORT run_subscribe_msckf_composable
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 # finally define this as the package
 ament_package()
