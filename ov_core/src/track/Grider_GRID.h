@@ -75,6 +75,9 @@ public:
                               std::vector<cv::KeyPoint> &pts, int num_features, int grid_x, int grid_y, int threshold,
                               bool nonmaxSuppression) {
 
+    // Check if image and mask dimensions match
+    assert(img.rows == mask.rows && img.cols == mask.cols && "Image and mask dimensions must match!");
+
     // Return if there is nothing to extract
     if (valid_locs.empty())
       return;
