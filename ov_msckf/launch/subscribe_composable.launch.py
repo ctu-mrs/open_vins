@@ -7,6 +7,7 @@ from launch_ros.descriptions import ComposableNode
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 import os
 import sys
+from mrs_lib.remappings_custom_config_parser import RemappingsCustomConfigParser
 
 launch_args = [
     DeclareLaunchArgument(
@@ -111,10 +112,10 @@ def launch_setup(context):
             {"save_total_state": LaunchConfiguration("save_total_state")},
             {"config_path": config_path},
         ],
-        extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
-        remappings=[("/imu_raw", PathJoinSubstitution(["/", LaunchConfiguration('uav_name'), 'imu_filtered'])),
-                    ("/image_raw", PathJoinSubstitution(["/", LaunchConfiguration('uav_name'), 'image_raw']))]
+        extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}]
     )
+    
+    parser = RemappingsCustomConfigParser(msckf_node, LaunchConfiguration('custom_config'))
     
     loader = LoadComposableNodes(
         condition=UnlessCondition(LaunchConfiguration('standalone')),
@@ -150,7 +151,7 @@ def launch_setup(context):
         ],
     )
 
-    return [loader, container, rviz_node]
+    return [parser, loader, container, rviz_node]
 
 
 def generate_launch_description():
