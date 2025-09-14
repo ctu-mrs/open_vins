@@ -48,6 +48,11 @@ launch_args = [
         description="record the total state with calibration and features to a txt file",
     ),
     DeclareLaunchArgument(
+        name="use_sim_time",
+        default_value="",
+        description="if set to true, simulation time from the '/clock' topic  will be used",
+    ),
+    DeclareLaunchArgument(
         name="use_intra_process",
         default_value="false",
         description="enable ROS 2 intra-process communication for zero-copy message passing",
@@ -110,6 +115,7 @@ def launch_setup(context):
             {"use_stereo": LaunchConfiguration("use_stereo")},
             {"max_cameras": LaunchConfiguration("max_cameras")},
             {"save_total_state": LaunchConfiguration("save_total_state")},
+            {"use_sim_time": LaunchConfiguration('use_sim_time')},
             {"config_path": config_path},
         ],
         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}]
