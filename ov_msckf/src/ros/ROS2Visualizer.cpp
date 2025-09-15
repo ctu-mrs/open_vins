@@ -334,7 +334,23 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
   trans.header.frame_id = "global";
   trans.child_frame_id = "imu";
   if (publish_global2imu_tf) {
-    mTfBr->sendTransform(trans);
+    //mTfBr->sendTransform(trans);
+    
+    // Create inverse transform
+    geometry_msgs::msg::TransformStamped trans_inv;
+    trans_inv.header.stamp = trans.header.stamp;
+    trans_inv.header.frame_id = "imu";
+    trans_inv.child_frame_id = "global";
+    
+    // Convert to tf2::Transform for easy inversion
+    tf2::Transform tf_orig;
+    tf2::fromMsg(trans.transform, tf_orig);
+    tf2::Transform tf_inv = tf_orig.inverse();
+    
+    // Convert back to message
+    trans_inv.transform = tf2::toMsg(tf_inv);
+    
+    mTfBr->sendTransform(trans_inv);
   }
 
   // Loop through each camera calibration and publish it
