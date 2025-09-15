@@ -86,10 +86,11 @@ public:
    */
   ROS2Visualizer(std::shared_ptr<rclcpp::Node> node,
                  std::shared_ptr<VioManager> app,
-                 std::string global_frame_name,
-                 std::string imu_frame_name,
-                 std::string cam_frame_name,
-                 std::shared_ptr<Simulator> sim = nullptr);
+                 std::shared_ptr<Simulator> sim = nullptr,
+                 std::string frames_prefix = "",
+                 std::string global_frame_name = "global",
+                 std::string imu_frame_name = "imu",
+                 std::string cam_frame_name = "cam0");
 
   /**
    * @brief Will setup ROS subscribers and callbacks
@@ -212,9 +213,10 @@ protected:
   bool save_total_state = false;
   std::ofstream of_state_est, of_state_std, of_state_gt;
 
-  std::string global_frame_name;
-  std::string imu_frame_name;
-  std::string cam_frame_name;
+  std::string frames_prefix_;
+  std::string global_frame_name_;
+  std::string imu_frame_name_;
+  std::string cam_frame_name_;
 };
 
 } // namespace ov_msckf
