@@ -116,6 +116,9 @@ def launch_setup(context):
             {"max_cameras": LaunchConfiguration("max_cameras")},
             {"save_total_state": LaunchConfiguration("save_total_state")},
             {"use_sim_time": LaunchConfiguration('use_sim_time')},
+            {"global_frame_name": [LaunchConfiguration('uav_name'), "/global"]},
+            {"imu_frame_name": [LaunchConfiguration('uav_name'), "/imu"]},
+            {"cam_frame_name": [LaunchConfiguration('uav_name'), "/cam0"]},
             {"config_path": config_path},
         ],
         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}]

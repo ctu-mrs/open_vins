@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 #if ROS_AVAILABLE == 1
   viz = std::make_shared<ROS1Visualizer>(nh, sys, sim);
 #elif ROS_AVAILABLE == 2
-  viz = std::make_shared<ROS2Visualizer>(node, sys, sim);
+  viz = std::make_shared<ROS2Visualizer>(node, sys, "global", "imu", "cam0", sim);
 #endif
 
   // Ensure we read in all parameters required

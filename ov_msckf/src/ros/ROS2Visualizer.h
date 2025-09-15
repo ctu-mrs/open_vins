@@ -84,7 +84,12 @@ public:
    * @param app Core estimator manager
    * @param sim Simulator if we are simulating
    */
-  ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<VioManager> app, std::shared_ptr<Simulator> sim = nullptr);
+  ROS2Visualizer(std::shared_ptr<rclcpp::Node> node,
+                 std::shared_ptr<VioManager> app,
+                 std::string global_frame_name,
+                 std::string imu_frame_name,
+                 std::string cam_frame_name,
+                 std::shared_ptr<Simulator> sim = nullptr);
 
   /**
    * @brief Will setup ROS subscribers and callbacks
@@ -206,6 +211,10 @@ protected:
   // Files and if we should save total state
   bool save_total_state = false;
   std::ofstream of_state_est, of_state_std, of_state_gt;
+
+  std::string global_frame_name;
+  std::string imu_frame_name;
+  std::string cam_frame_name;
 };
 
 } // namespace ov_msckf

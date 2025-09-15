@@ -53,11 +53,26 @@ class SubscribeMSCKF : public rclcpp::Node {
         std::shared_ptr<VioManager> sys;
         std::shared_ptr<ROS2Visualizer> viz;
         std::string config_path;
+        std::string global_frame_name;
+        std::string imu_frame_name;
+        std::string cam_frame_name;
 
         void timerInitialization() {
             declare_parameter<std::string>("config_path");
             get_parameter<std::string>("config_path", config_path);
             RCLCPP_INFO(get_logger(), "CONFIG PATH: %s", config_path.c_str());
+
+            declare_parameter<std::string>("global_frame_name", "global");
+            get_parameter<std::string>("global_frame_name", global_frame_name);
+            RCLCPP_INFO(get_logger(), "GLOBAL FRAME NAME: %s", global_frame_name.c_str());
+
+            declare_parameter<std::string>("imu_frame_name", "imu");
+            get_parameter<std::string>("imu_frame_name", imu_frame_name);
+            RCLCPP_INFO(get_logger(), "IMU FRAME NAME: %s", imu_frame_name.c_str());
+
+            declare_parameter<std::string>("cam_frame_name", "cam0");
+            get_parameter<std::string>("cam_frame_name", cam_frame_name);
+            RCLCPP_INFO(get_logger(), "CAM FRAME NAME: %s", cam_frame_name.c_str());
 
             // Load the config
             auto parser = std::make_shared<ov_core::YamlParser>(config_path);
@@ -74,7 +89,7 @@ class SubscribeMSCKF : public rclcpp::Node {
             params.print_and_load(parser);
             params.use_multi_threading_subs = true;
             sys = std::make_shared<VioManager>(params);
-            viz = std::make_shared<ROS2Visualizer>(node, sys);
+            viz = std::make_shared<ROS2Visualizer>(node, sys, global_frame_name, imu_frame_name, cam_frame_name);
             viz->setup_subscribers(parser);
 
             // Ensure we read in all parameters required
