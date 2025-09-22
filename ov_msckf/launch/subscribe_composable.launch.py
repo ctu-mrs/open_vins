@@ -66,6 +66,11 @@ launch_args = [
         name="standalone",
         default_value="true",
         description="determines whether this node will be running in it's own component container or in the one who's name is provided"
+    ),
+    DeclareLaunchArgument(
+        name="custom_config",
+        default_value="",
+        description=""
     )
 ]
 
