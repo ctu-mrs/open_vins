@@ -49,7 +49,7 @@ launch_args = [
     ),
     DeclareLaunchArgument(
         name="use_sim_time",
-        default_value="",
+        default_value=false,
         description="if set to true, simulation time from the '/clock' topic  will be used",
     ),
     DeclareLaunchArgument(
