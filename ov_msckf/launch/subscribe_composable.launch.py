@@ -113,7 +113,7 @@ def launch_setup(context):
     msckf_node = ComposableNode(
         package="ov_msckf",
         plugin="msckf_component::SubscribeMSCKF",  # Update this with the actual component class name
-        name="run_subscribe_msckf",
+        name="open_vins",
         namespace = LaunchConfiguration('uav_name'),
         parameters=[
             {"verbosity": LaunchConfiguration("verbosity")},
@@ -126,6 +126,21 @@ def launch_setup(context):
             {"imu_frame_name": "imu"},
             {"cam_frame_name": "cam0"},
             {"config_path": config_path},
+        ],
+        remappings=[
+            ("~/poseimu_out", "~/poseimu"),
+            ("~/odomimu_out", "~/odomimu"),
+            ("~/pathimu_out", "~/pathimu"),
+            ("~/points_msckf_out", "~/points_msckf"),
+            ("~/points_slam_out", "~/points_slam"),
+            ("~/points_aruco_out", "~/points_aruco"),
+            ("~/points_sim_out", "~/points_sim"),
+            ("~/posegt_out", "~/posegt"),
+            ("~/pathgt_out", "~/pathgt"),
+            ("~/loop_pose_out", "~/loop_pose"),
+            ("~/loop_feats_out", "~/loop_feats"),
+            ("~/loop_extrinsic_out", "~/loop_extrinsic"),
+            ("~/loop_intrinsics_out", "~/loop_intrinsics"),
         ],
         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}]
     )
