@@ -184,9 +184,10 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
 
   // Create imu subscriber (handle legacy ros param info)
   std::string topic_imu;
-  _node->declare_parameter<std::string>("~/imu_in", "/imu0");
+  _node->declare_parameter<std::string>("topic_imu", "");
   _node->get_parameter("topic_imu", topic_imu);
-  parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
+  if(topic_imu.empty())
+    parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
   sub_imu = _node->create_subscription<sensor_msgs::msg::Imu>(topic_imu, rclcpp::SensorDataQoS(),
                                                               std::bind(&ROS2Visualizer::callback_inertial, this, std::placeholders::_1));
   PRINT_INFO("subscribing to IMU: %s\n", topic_imu.c_str());

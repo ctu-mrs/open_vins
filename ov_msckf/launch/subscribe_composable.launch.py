@@ -1,12 +1,12 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction, IncludeLaunchDescription
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import ComposableNodeContainer, Node, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
-from ament_index_python.packages import get_package_share_directory, get_package_prefix
+from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
 import os
-import sys
 from mrs_lib.remappings_custom_config_parser import RemappingsCustomConfigParser
 
 launch_args = [
@@ -71,6 +71,17 @@ launch_args = [
         name="custom_config",
         default_value="",
         description=""
+    ),
+    DeclareLaunchArgument(
+        name="enable_filter",
+        default_value="false",
+        description="determinmes whether imu filter will be put between imu node and OpenVINS node",
+        choices=['true', 'false']
+    ),
+    DeclareLaunchArgument(
+        name="topic_namespace",
+        default_value="vio_imu",
+        description="entire topic name is constructed as '/<uav_name>/<topic_namespace>/<topic_name>', e.g. /uav1/vio_imu/imu_raw"
     )
 ]
 
@@ -126,6 +137,7 @@ def launch_setup(context):
             {"imu_frame_name": "imu"},
             {"cam_frame_name": "cam0"},
             {"config_path": config_path},
+            {"topic_imu": PythonExpression(["'", PathJoinSubstitution(["/", LaunchConfiguration('uav_name'), LaunchConfiguration('topic_namespace')]), "/imu_filtered' if '", LaunchConfiguration("enable_filter"), "' == 'true' else ''"])}
         ],
         remappings=[
             ("~/poseimu_out", "~/poseimu"),
@@ -140,13 +152,27 @@ def launch_setup(context):
             ("~/loop_pose_out", "~/loop_pose"),
             ("~/loop_feats_out", "~/loop_feats"),
             ("~/loop_extrinsic_out", "~/loop_extrinsic"),
-            ("~/loop_intrinsics_out", "~/loop_intrinsics"),
+            ("~/loop_intrinsics_out", "~/loop_intrinsics")
         ],
         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}]
     )
     
     parser = RemappingsCustomConfigParser(msckf_node, LaunchConfiguration('custom_config'))
-    
+
+    filter = IncludeLaunchDescription(
+        PathJoinSubstitution([
+            FindPackageShare('mrs_vins_imu_filter'),
+            'launch',
+            'filter_icm_42688.py'
+        ]),
+        launch_arguments={
+            'standalone': 'True',
+            'container_name': LaunchConfiguration("container_name"),
+            'topic_namespace': LaunchConfiguration('topic_namespace')
+        }.items(),
+        condition=IfCondition(LaunchConfiguration('enable_filter'))
+    )
+
     loader = LoadComposableNodes(
         condition=UnlessCondition(LaunchConfiguration('standalone')),
         composable_node_descriptions=[msckf_node],
@@ -181,7 +207,7 @@ def launch_setup(context):
         ],
     )
 
-    return [parser, loader, container, rviz_node]
+    return [parser, loader, container, rviz_node, filter]
 
 
 def generate_launch_description():
