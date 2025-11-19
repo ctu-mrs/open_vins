@@ -75,6 +75,29 @@ Keep in mind this is not final solution. Final solution would be refactoring Ope
 
     2. Manifold is the new LocalParameterization. Version 2.1 is the transition release where users can use both LocalParameterization as well as     Manifold objects as they transition from the former to the latter. LocalParameterization will be removed in version 2.2. There should be no numerical change to the results as a result of this change. (Sameer Agarwal, Johannes Beck, Sergiu Deitsch)
 
+### IMU source topic
+
+There are two places to define which IMU topic should the OpenVINS use:
+
+  1. `topic_imu` node parameter. Value of this parameter is provided in the launchfile `subscribe_composable.launch.py`. (more on this in the next chapter)
+  2. `kalibr_imu_chain.yaml` config file. There is a `rostopic:` parameter.
+
+The `topic_imu` parameter has higher priority. If this parameter is set, then the value from the `kalibr_imu_chain.yaml` is ignored.
+
+### IMU filter usage
+
+User can optionally add IMU filter between the the IMU driver and the OpenVINS node. Inclusion of the IMU filter into the pipeline is determined by the parameter `enable_filter`. If set to `true`, the parameter `topic_imu` is set inside the `subscribe_composable.launch.py` launch file to the value
+
+    /<uav_name>/<topic_namespace>/imu_filtered
+
+where `<uav_name>` and `<topic_namespace>` are launch arguments. The default is
+
+    /<UAV_NAME environment variable>/vio_imu/imu_filtered
+
+Also a IMU filter node is launched together with the OpenVINS.
+
+If the `enable_filter` is set to `false`, the IMU topic with name defined in the `kalibr_imu_chain.yaml` config will be used.
+
 ## News / Events
 
 * **May 11, 2023** - Inertial intrinsic support released as part of v2.7 along with a few bug fixes and improvements to stereo KLT tracking. Please check out the [release page](https://github.com/rpng/open_vins/releases/tag/v2.7) for details.
