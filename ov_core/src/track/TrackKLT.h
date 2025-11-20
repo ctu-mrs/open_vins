@@ -52,9 +52,12 @@ public:
    * @param minpxdist features need to be at least this number pixels away from each other
    */
   explicit TrackKLT(std::unordered_map<size_t, std::shared_ptr<CamBase>> cameras, int numfeats, int numaruco, bool stereo,
-                    HistogramMethod histmethod, int fast_threshold, int gridx, int gridy, int minpxdist)
+                    HistogramMethod histmethod, int fast_threshold, int gridx, int gridy, int minpxdist,
+                    int eq_win_size_=8, double eq_clip_limit_=10.0, int win_size_optflow_=15, int pyr_levels_=5)
       : TrackBase(cameras, numfeats, numaruco, stereo, histmethod), threshold(fast_threshold), grid_x(gridx), grid_y(gridy),
-        min_px_dist(minpxdist) {}
+        min_px_dist(minpxdist),
+        eq_win_size(eq_win_size_), eq_clip_limit(eq_clip_limit_), win_size_optflow(win_size_optflow_), pyr_levels(pyr_levels_)
+        {}
 
   /**
    * @brief Process a new image
@@ -140,8 +143,11 @@ protected:
   int min_px_dist;
 
   // How many pyramid levels to track
-  int pyr_levels = 5;
-  cv::Size win_size = cv::Size(15, 15);
+  int eq_win_size;
+  double eq_clip_limit;
+  int win_size_optflow;
+  int pyr_levels;
+  cv::Size win_size = cv::Size(win_size_optflow, win_size_optflow);
 
   // Last set of image pyramids
   std::map<size_t, std::vector<cv::Mat>> img_pyramid_last;

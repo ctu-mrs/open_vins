@@ -58,9 +58,8 @@ void TrackKLT::feed_new_camera(const CameraData &message) {
     if (histogram_method == HistogramMethod::HISTOGRAM) {
       cv::equalizeHist(message.images.at(msg_id), img);
     } else if (histogram_method == HistogramMethod::CLAHE) {
-      double eq_clip_limit = 10.0;
-      cv::Size eq_win_size = cv::Size(8, 8);
-      cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(eq_clip_limit, eq_win_size);
+      cv::Size eq_win_size_ = cv::Size(eq_win_size, eq_win_size);
+      cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(eq_clip_limit, eq_win_size_);
       clahe->apply(message.images.at(msg_id), img);
     } else {
       img = message.images.at(msg_id);

@@ -444,6 +444,18 @@ struct VioManagerOptions {
   /// Parameters used by our feature initialize / triangulator
   ov_core::FeatureInitializerOptions featinit_options;
 
+  /// Windown size for the adaptive equalization
+  int eq_win_size;
+
+  /// Threshold for contrast limiting for the adaptive equalization
+  double eq_clip_limit;
+
+  /// Window size for the LK optic flow tracking
+  int win_size_optflow;
+
+  /// Image pyramids size for the LK optical flow
+  int pyr_levels;
+
   /**
    * @brief This function will load print out all parameters related to visual tracking
    * This allows for visual checking that everything was loaded properly from ROS/CMD parsers.
@@ -482,6 +494,10 @@ struct VioManagerOptions {
       }
       parser->parse_config("knn_ratio", knn_ratio);
       parser->parse_config("track_frequency", track_frequency);
+      parser->parse_config("eq_win_size", eq_win_size);
+      parser->parse_config("eq_clip_limit", eq_clip_limit);
+      parser->parse_config("win_size_optflow", win_size_optflow);
+      parser->parse_config("pyr_levels", pyr_levels);
     }
     PRINT_DEBUG("FEATURE TRACKING PARAMETERS:\n");
     PRINT_DEBUG("  - use_stereo: %d\n", use_stereo);

@@ -189,6 +189,7 @@ def launch_setup(context):
         composable_node_descriptions=[msckf_node],
         output='screen',
         arguments=['--ros-args', '--log-level', 'info'],
+        #prefix=['xterm -e gdb -ex run --args']
     )
 
     # RViz node (remains as regular node)
