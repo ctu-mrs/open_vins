@@ -137,7 +137,10 @@ VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false),
   } else {
     trackFEATS = std::shared_ptr<TrackBase>(new TrackDescriptor(
         state->_cam_intrinsics_cameras, init_max_features, state->_options.max_aruco_features, params.use_stereo, params.histogram_method,
-        params.fast_threshold, params.grid_x, params.grid_y, params.min_px_dist, params.knn_ratio));
+        params.fast_threshold, params.grid_x, params.grid_y, params.min_px_dist, params.knn_ratio,
+
+      params.nfeatures, params.scaleFactor, params.nlevels, params.edgeThreshold, params.firstLevel,
+      params.WTA_K, params.scoreType, params.patchSize, params.fastThreshold));
   }
 
   // Initialize our aruco tag extractor

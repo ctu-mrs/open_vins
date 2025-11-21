@@ -456,6 +456,17 @@ struct VioManagerOptions {
   /// Image pyramids size for the LK optical flow
   int pyr_levels;
 
+  /// ORB params
+  int nfeatures = 500;
+  float scaleFactor = 1.2f;
+  int nlevels = 8;
+  int edgeThreshold = 31;
+  int firstLevel = 0;
+  int WTA_K = 2;
+  cv::ORB::ScoreType scoreType = cv::ORB::HARRIS_SCORE;
+  int patchSize = 31;
+  int fastThreshold = 20;
+
   /**
    * @brief This function will load print out all parameters related to visual tracking
    * This allows for visual checking that everything was loaded properly from ROS/CMD parsers.
@@ -498,6 +509,16 @@ struct VioManagerOptions {
       parser->parse_config("eq_clip_limit", eq_clip_limit);
       parser->parse_config("win_size_optflow", win_size_optflow);
       parser->parse_config("pyr_levels", pyr_levels);
+
+      parser->parse_config("nfeatures", nfeatures);
+      parser->parse_config("scaleFactor", scaleFactor);
+      parser->parse_config("nlevels", nlevels);
+      parser->parse_config("edgeThreshold", edgeThreshold);
+      parser->parse_config("firstLevel", firstLevel);
+      parser->parse_config("WTA_K", WTA_K);
+      //parser->parse_config("scoreType", scoreType);
+      parser->parse_config("patchSize", patchSize);
+      parser->parse_config("fastThreshold", fastThreshold);
     }
     PRINT_DEBUG("FEATURE TRACKING PARAMETERS:\n");
     PRINT_DEBUG("  - use_stereo: %d\n", use_stereo);

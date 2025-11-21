@@ -51,9 +51,22 @@ public:
    * @param knnratio matching ratio needed (smaller value forces top two descriptors during match to be more different)
    */
   explicit TrackDescriptor(std::unordered_map<size_t, std::shared_ptr<CamBase>> cameras, int numfeats, int numaruco, bool stereo,
-                           HistogramMethod histmethod, int fast_threshold, int gridx, int gridy, int minpxdist, double knnratio)
+                           HistogramMethod histmethod, int fast_threshold, int gridx, int gridy, int minpxdist, double knnratio,
+                            int nfeatures_, float scaleFactor_, int nlevels_, int edgeThreshold_, int firstLevel_,
+                            int WTA_K_, cv::ORB::ScoreType scoreType_, int patchSize_, int fastThreshold_)
+
       : TrackBase(cameras, numfeats, numaruco, stereo, histmethod), threshold(fast_threshold), grid_x(gridx), grid_y(gridy),
-        min_px_dist(minpxdist), knn_ratio(knnratio) {}
+        min_px_dist(minpxdist), knn_ratio(knnratio),
+
+        nfeatures(nfeatures_), scaleFactor(scaleFactor_), nlevels(nlevels_), edgeThreshold(edgeThreshold_),
+        firstLevel(firstLevel_), WTA_K(WTA_K_), scoreType(scoreType_), patchSize(patchSize_), fastThreshold(fastThreshold_)
+
+        {
+          orb0 = cv::ORB::create(nfeatures, scaleFactor, nlevels, edgeThreshold, firstLevel,
+                                 WTA_K, scoreType, patchSize, fastThreshold);
+          orb1 = cv::ORB::create(nfeatures, scaleFactor, nlevels, edgeThreshold, firstLevel,
+                                 WTA_K, scoreType, patchSize, fastThreshold);
+        }
 
   /**
    * @brief Process a new image
@@ -146,8 +159,21 @@ protected:
   boost::posix_time::ptime rT1, rT2, rT3, rT4, rT5, rT6, rT7;
 
   // Our orb extractor
-  cv::Ptr<cv::ORB> orb0 = cv::ORB::create();
-  cv::Ptr<cv::ORB> orb1 = cv::ORB::create();
+  //cv::Ptr<cv::ORB> orb0 = cv::ORB::create();
+  //cv::Ptr<cv::ORB> orb1 = cv::ORB::create();
+  
+  int nfeatures=500;
+  float scaleFactor=1.2f;
+  int nlevels=8;
+  int edgeThreshold=31;
+  int firstLevel=0;
+  int WTA_K=2;
+  cv::ORB::ScoreType scoreType=cv::ORB::HARRIS_SCORE;
+  int patchSize=31;
+  int fastThreshold=20;
+
+  cv::Ptr<cv::ORB> orb0;
+  cv::Ptr<cv::ORB> orb1;
 
   // Our descriptor matcher
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
