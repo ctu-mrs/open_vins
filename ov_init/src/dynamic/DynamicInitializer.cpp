@@ -672,8 +672,8 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
 
     // Now actually create the parameter block in the ceres problem
     //auto ceres_jplquat = new State_JPLQuatLocal();
-    auto ceres_hamiltonquat = std::make_shared<ceres::QuaternionManifold>();
-    problem.AddParameterBlock(var_ori, 4, ceres_hamiltonquat.get());
+    ceres::Manifold* ceres_hamiltonquat = new ceres::QuaternionManifold();
+    problem.AddParameterBlock(var_ori, 4, ceres_hamiltonquat);
     problem.AddParameterBlock(var_pos, 3);
     problem.AddParameterBlock(var_vel, 3);
     problem.AddParameterBlock(var_bias_g, 3);
@@ -765,9 +765,10 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
       for (int j = 0; j < 3; j++) {
         var_calib_pos[j] = params.camera_extrinsics.at(cam_id)(4 + j, 0);
       }
+
       //auto ceres_calib_jplquat = new State_JPLQuatLocal();
-      auto ceres_calib_hamiltonquat = std::make_shared<ceres::QuaternionManifold>();
-      problem.AddParameterBlock(var_calib_ori, 4, ceres_calib_hamiltonquat.get());
+      ceres::Manifold* ceres_calib_hamiltonquat = new ceres::QuaternionManifold();
+      problem.AddParameterBlock(var_calib_ori, 4, ceres_calib_hamiltonquat);
       problem.AddParameterBlock(var_calib_pos, 3);
       map_calib_cam2imu.insert({cam_id, (int)ceres_vars_calib_cam2imu_ori.size()});
       ceres_vars_calib_cam2imu_ori.push_back(var_calib_ori);
