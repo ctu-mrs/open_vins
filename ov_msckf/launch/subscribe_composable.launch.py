@@ -168,7 +168,8 @@ def launch_setup(context):
         launch_arguments={
             'standalone': 'True',
             'container_name': LaunchConfiguration("container_name"),
-            'topic_namespace': LaunchConfiguration('topic_namespace')
+            'topic_namespace': LaunchConfiguration('topic_namespace'),
+            "use_sim_time": LaunchConfiguration('use_sim_time')
         }.items(),
         condition=IfCondition(LaunchConfiguration('enable_filter'))
     )

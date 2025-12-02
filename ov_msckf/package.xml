@@ -57,6 +57,7 @@
     <depend>boost</depend>
     <depend>libceres-dev</depend>
     <depend>rclcpp_components</depend>
+    <depend>cv_bridge</depend>
 
     <!-- Note the export is required to expose the executables -->
     <export>

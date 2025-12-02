@@ -14,6 +14,8 @@ find_package(image_transport REQUIRED)
 find_package(ov_core REQUIRED)
 find_package(ov_init REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+#find_package(OpenCV REQUIRED)
 
 # Describe ROS project
 option(ENABLE_ROS "Enable or disable building with ROS (if it is found)" ON)
@@ -49,6 +51,7 @@ list(APPEND ament_libraries
         ov_core
         ov_init
         rclcpp_components
+        rosbag2_cpp
 )
 
 ##################################################
@@ -95,6 +98,11 @@ ament_target_dependencies(run_subscribe_msckf ${ament_libraries})
 target_link_libraries(run_subscribe_msckf ov_msckf_lib ${thirdparty_libraries})
 install(TARGETS run_subscribe_msckf DESTINATION lib/${PROJECT_NAME})
 
+add_executable(serial_msckf src/ros2_serial_msckf.cpp)
+ament_target_dependencies(serial_msckf ${ament_libraries})
+target_link_libraries(serial_msckf ov_msckf_lib ${thirdparty_libraries})
+install(TARGETS serial_msckf DESTINATION lib/${PROJECT_NAME})
+
 add_executable(run_simulation src/run_simulation.cpp)
 ament_target_dependencies(run_simulation ${ament_libraries})
 target_link_libraries(run_simulation ov_msckf_lib ${thirdparty_libraries})
@@ -115,11 +123,22 @@ ament_target_dependencies(run_subscribe_msckf_composable_component ${ament_libra
 target_link_libraries(run_subscribe_msckf_composable_component ov_msckf_lib ${thirdparty_libraries})
 #install(TARGETS run_subscribe_msckf_composable DESTINATION lib/${PROJECT_NAME})
 
+# add_library(serial_msckf_composable_component SHARED src/ros2_serial_msckf.cpp)
+# ament_target_dependencies(serial_msckf_composable_component ${ament_libraries})
+# target_link_libraries(serial_msckf_composable_component ov_msckf_lib ${thirdparty_libraries})
+# #install(TARGETS serial_msckf_composable DESTINATION lib/${PROJECT_NAME})
+
 rclcpp_components_register_node(
     run_subscribe_msckf_composable_component
     PLUGIN "msckf_component::SubscribeMSCKF"
     EXECUTABLE run_subscribe_msckf_composable
 )
+
+# rclcpp_components_register_node(
+#     serial_msckf_composable_component
+#     PLUGIN "msckf_component::SerialMSCKF"
+#     EXECUTABLE serial_msckf_composable
+# )
 
 # Install launch and config directories
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
@@ -131,6 +150,13 @@ install(TARGETS run_subscribe_msckf_composable_component
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
+
+# install(TARGETS serial_msckf_composable_component
+#   EXPORT export_serial_msckf_composable
+#   ARCHIVE DESTINATION lib
+#   LIBRARY DESTINATION lib
+#   RUNTIME DESTINATION bin
+# )
 
 # finally define this as the package
 ament_package()
