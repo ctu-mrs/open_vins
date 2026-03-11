@@ -74,6 +74,10 @@ public:
     return time;
   }
 
+  Eigen::MatrixXd getCov(void) {
+    return _Cov;
+  }
+
   /**
    * @brief Calculates the current max size of the covariance
    * @return Size of the current covariance matrix
@@ -179,17 +183,17 @@ public:
   /// Rotation from accelerometer to the "IMU" gyroscope frame frame (rpng model)
   std::shared_ptr<ov_type::JPLQuat> _calib_imu_ACCtoIMU;
 
-private:
-  // Define that the state helper is a friend class of this class
-  // This will allow it to access the below functions which should normally not be called
-  // This prevents a developer from thinking that the "insert clone" will actually correctly add it to the covariance
-  friend class StateHelper;
-
   /// Covariance of all active variables
   Eigen::MatrixXd _Cov;
 
   /// Vector of variables
   std::vector<std::shared_ptr<ov_type::Type>> _variables;
+
+private:
+  // Define that the state helper is a friend class of this class
+  // This will allow it to access the below functions which should normally not be called
+  // This prevents a developer from thinking that the "insert clone" will actually correctly add it to the covariance
+  friend class StateHelper;
 };
 
 } // namespace ov_msckf

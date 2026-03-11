@@ -40,6 +40,8 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -84,12 +86,8 @@ public:
    * @param app Core estimator manager
    * @param sim Simulator if we are simulating
    */
-  ROS2Visualizer(std::shared_ptr<rclcpp::Node> node,
-                 std::shared_ptr<VioManager> app,
-                 std::shared_ptr<Simulator> sim = nullptr,
-                 std::string frames_prefix = "",
-                 std::string global_frame_name = "global",
-                 std::string imu_frame_name = "imu",
+  ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<VioManager> app, std::shared_ptr<Simulator> sim = nullptr,
+                 std::string frames_prefix = "", std::string global_frame_name = "global", std::string imu_frame_name = "imu",
                  std::string cam_frame_name = "cam0");
 
   /**
@@ -110,6 +108,8 @@ public:
    */
   void visualize_odometry(double timestamp);
 
+  void publish_state(double timestamp);
+
   /**
    * @brief After the run has ended, print results
    */
@@ -117,6 +117,15 @@ public:
 
   /// Callback for inertial information
   void callback_inertial(const sensor_msgs::msg::Imu::SharedPtr msg);
+
+  void callback_state(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
+
+  std::mutex mutex_gt_state_;
+  std::shared_ptr<std_msgs::msg::Float64MultiArray> gt_state_;
+
+  bool callbackRestartFromGt([[maybe_unused]] const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
+                             const std::shared_ptr<std_srvs::srv::Trigger::Response> res);
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr srv_restart_from_gt_;
 
   /// Callback for monocular cameras information
   void callback_monocular(const sensor_msgs::msg::Image::SharedPtr msg0, int cam_id0);
@@ -160,6 +169,9 @@ protected:
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_loop_point;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_loop_intrinsics;
   std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBr;
+
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_state;
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr sub_state;
 
   // Our subscribers and camera synchronizers
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sub_imu;

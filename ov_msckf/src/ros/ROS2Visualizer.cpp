@@ -35,22 +35,16 @@ using namespace ov_core;
 using namespace ov_type;
 using namespace ov_msckf;
 
-ROS2Visualizer::ROS2Visualizer(
-  std::shared_ptr<rclcpp::Node> node,
-  std::shared_ptr<VioManager> app,
-  std::shared_ptr<Simulator> sim,
-  std::string frames_prefix,
-  std::string global_frame_name,
-  std::string imu_frame_name,
-  std::string cam_frame_name)
-    : _node(node), _app(app), _sim(sim), thread_update_running(false),
-    frames_prefix_(frames_prefix),
-    global_frame_name_(global_frame_name),
-    imu_frame_name_(imu_frame_name),
-    cam_frame_name_(cam_frame_name)
-{
+/* ROS2Visualizer() //{ */
+
+ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<VioManager> app, std::shared_ptr<Simulator> sim,
+                               std::string frames_prefix, std::string global_frame_name, std::string imu_frame_name,
+                               std::string cam_frame_name)
+    : _node(node), _app(app), _sim(sim), thread_update_running(false), frames_prefix_(frames_prefix), global_frame_name_(global_frame_name),
+      imu_frame_name_(imu_frame_name), cam_frame_name_(cam_frame_name) {
   // Set up prefixes for all frames
-  if(!frames_prefix_.empty()) frames_prefix_ += "/";
+  if (!frames_prefix_.empty())
+    frames_prefix_ += "/";
   global_frame_name_ = frames_prefix_ + global_frame_name_;
   imu_frame_name_ = frames_prefix_ + imu_frame_name_;
   cam_frame_name_ = frames_prefix_ + cam_frame_name_;
@@ -64,8 +58,20 @@ ROS2Visualizer::ROS2Visualizer(
   // Setup pose and path publisher
   pub_poseimu = node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("~/poseimu_out", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_poseimu->get_topic_name());
+
   pub_odomimu = node->create_publisher<nav_msgs::msg::Odometry>("~/odomimu_out", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_odomimu->get_topic_name());
+
+  pub_state = node->create_publisher<std_msgs::msg::Float64MultiArray>("~/state_out", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_state->get_topic_name());
+
+  const std::function<void(const std_msgs::msg::Float64MultiArray::SharedPtr)> state_cbk =
+      std::bind(&ROS2Visualizer::callback_state, this, std::placeholders::_1);
+  sub_state = node->create_subscription<std_msgs::msg::Float64MultiArray>("~/state_in", rclcpp::SensorDataQoS(), state_cbk);
+
+  srv_restart_from_gt_ = node->create_service<std_srvs::srv::Trigger>(
+      "~/restart_from_gt", std::bind(&ROS2Visualizer::callbackRestartFromGt, this, std::placeholders::_1, std::placeholders::_2));
+
   pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("~/pathimu_out", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu->get_topic_name());
 
@@ -177,6 +183,57 @@ ROS2Visualizer::ROS2Visualizer(
   }
 }
 
+//}
+
+/* callback_state() //{ */
+
+void ROS2Visualizer::callback_state(const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+
+  RCLCPP_INFO_ONCE(_node->get_logger(), "getting ground truth state");
+
+  {
+    std::scoped_lock lock(mutex_gt_state_);
+
+    gt_state_ = msg;
+  }
+}
+
+//}
+
+/* callbackRestartFromGt() //{ */
+
+bool ROS2Visualizer::callbackRestartFromGt([[maybe_unused]] const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
+                                           const std::shared_ptr<std_srvs::srv::Trigger::Response> res) {
+
+  RCLCPP_WARN(_node->get_logger(), "restarting from gt");
+
+  if (!gt_state_) {
+
+    res->success = true;
+    res->message = "missing gt";
+
+    return true;
+  }
+
+  Eigen::Matrix<double, 17, 1> state_vec;
+
+  for (int i = 0; i < 17; ++i) {
+    state_vec(i, 0) = gt_state_->data[i];
+  }
+
+  // Force initialization
+  _app->initialize_with_gt(state_vec);
+
+  res->success = true;
+  res->message = "restarted";
+
+  return true;
+}
+
+//}
+
+/* setup_subscribers() //{ */
+
 void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> parser) {
 
   // We need a valid parser
@@ -186,7 +243,7 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   std::string topic_imu;
   _node->declare_parameter<std::string>("topic_imu", "");
   _node->get_parameter("topic_imu", topic_imu);
-  if(topic_imu.empty())
+  if (topic_imu.empty())
     parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
   sub_imu = _node->create_subscription<sensor_msgs::msg::Imu>(topic_imu, rclcpp::SensorDataQoS(),
                                                               std::bind(&ROS2Visualizer::callback_inertial, this, std::placeholders::_1));
@@ -236,6 +293,10 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   }
 }
 
+//}
+
+/* visualize() //{ */
+
 void ROS2Visualizer::visualize() {
 
   // Return if we have already visualized
@@ -284,6 +345,10 @@ void ROS2Visualizer::visualize() {
   // PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for visualization\n" RESET, time_total);
 }
 
+//}
+
+/* visualize_odometry() //{ */
+
 void ROS2Visualizer::visualize_odometry(double timestamp) {
 
   // Return if we have not inited and a second has passes
@@ -328,17 +393,21 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
     Phi.block(0, 3, 3, 3).setIdentity();
     Phi.block(3, 0, 3, 3).setIdentity();
     Phi.block(6, 6, 6, 6).setIdentity();
+
     cov_plus = Phi * cov_plus * Phi.transpose();
+
     for (int r = 0; r < 6; r++) {
       for (int c = 0; c < 6; c++) {
         odomIinM.pose.covariance[6 * r + c] = cov_plus(r, c);
       }
     }
+
     for (int r = 0; r < 6; r++) {
       for (int c = 0; c < 6; c++) {
         odomIinM.twist.covariance[6 * r + c] = cov_plus(r + 6, c + 6);
       }
     }
+
     pub_odomimu->publish(odomIinM);
   }
 
@@ -352,22 +421,22 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
   trans.header.frame_id = global_frame_name_;
   trans.child_frame_id = imu_frame_name_;
   if (publish_global2imu_tf) {
-    //mTfBr->sendTransform(trans);
+    // mTfBr->sendTransform(trans);
 
     // Create inverse transform
     geometry_msgs::msg::TransformStamped trans_inv;
     trans_inv.header.stamp = trans.header.stamp;
     trans_inv.header.frame_id = imu_frame_name_;
     trans_inv.child_frame_id = global_frame_name_;
-    
+
     // Convert to tf2::Transform for easy inversion
     tf2::Transform tf_orig;
     tf2::fromMsg(trans.transform, tf_orig);
     tf2::Transform tf_inv = tf_orig.inverse();
-    
+
     // Convert back to message
     trans_inv.transform = tf2::toMsg(tf_inv);
-    
+
     mTfBr->sendTransform(trans_inv);
   }
 
@@ -382,6 +451,81 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
     }
   }
 }
+
+//}
+
+/* publish_state() //{ */
+
+void ROS2Visualizer::publish_state(double timestamp) {
+
+  // Return if we have not inited and a second has passes
+  if (!_app->initialized() || (timestamp - _app->initialized_time()) < 1)
+    return;
+
+  // Get fast propagate state at the desired timestamp
+  std::shared_ptr<State> state = _app->get_state();
+
+  auto msg = std_msgs::msg::Float64MultiArray();
+  msg.data.resize(19);
+
+  // 1. Timestamp (from the State class member)
+  msg.data[0] = state->_timestamp;
+
+  // 2. Get the IMU pointer (from State.h)
+  auto imu = state->_imu;
+
+  // 4. Extract 4x1 Quaternion (Orientation)
+  // The quat() method returns Eigen::Matrix<double, 4, 1>
+  Eigen::Vector4d q = imu->quat();
+
+  msg.data[1] = q(0); // w
+  msg.data[2] = q(1); // x
+  msg.data[3] = q(2); // y
+  msg.data[4] = q(3); // z
+
+  // 5. Extract 3x1 Position
+  Eigen::Vector3d p = imu->pos();
+  msg.data[5] = p(0);
+  msg.data[6] = p(1);
+  msg.data[7] = p(2);
+
+  // 6. Extract 3x1 Velocity
+  Eigen::Vector3d v = imu->vel();
+  msg.data[8] = v(0);
+  msg.data[9] = v(1);
+  msg.data[10] = v(2);
+
+  // 7. Extract 3x1 Gyroscope Bias
+  Eigen::Vector3d bg = imu->bias_g();
+  msg.data[11] = bg(0);
+  msg.data[12] = bg(1);
+  msg.data[13] = bg(2);
+
+  // 8. Extract 3x1 Accelerometer Bias
+  Eigen::Vector3d ba = imu->bias_a();
+  msg.data[14] = ba(0);
+  msg.data[15] = ba(1);
+  msg.data[16] = ba(2);
+
+  std::vector<Eigen::Vector3d> feats = _app->get_features_SLAM();
+
+  // 2. Check Covariance Divergence (The "Uncertainty" check)
+  // Find the position indices in the covariance matrix
+  int p_id = state->_imu->pose()->p()->id();
+
+  double pos_var = state->getCov()(p_id, p_id) + state->getCov()(p_id + 1, p_id + 1) + state->getCov()(p_id + 2, p_id + 2);
+
+  msg.data[17] = feats.size();
+
+  msg.data[18] = pos_var;
+
+  // Now publish msg to the other instance
+  pub_state->publish(msg);
+}
+
+//}
+
+/* visualize_final() //{ */
 
 void ROS2Visualizer::visualize_final() {
 
@@ -469,6 +613,10 @@ void ROS2Visualizer::visualize_final() {
   PRINT_INFO(REDPURPLE "TIME: %.3f seconds\n\n" RESET, (rT2 - rT1).total_microseconds() * 1e-6);
 }
 
+//}
+
+/* callback_inertial() //{ */
+
 void ROS2Visualizer::callback_inertial(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
   // convert into correct format
@@ -479,7 +627,10 @@ void ROS2Visualizer::callback_inertial(const sensor_msgs::msg::Imu::SharedPtr ms
 
   // send it to our VIO system
   _app->feed_measurement_imu(message);
+
   visualize_odometry(message.timestamp);
+
+  publish_state(message.timestamp);
 
   // If the processing queue is currently active / running just return so we can keep getting measurements
   // Otherwise create a second thread to do our update in an async manor
@@ -529,6 +680,10 @@ void ROS2Visualizer::callback_inertial(const sensor_msgs::msg::Imu::SharedPtr ms
   }
 }
 
+//}
+
+/* callback_monocular() //{ */
+
 void ROS2Visualizer::callback_monocular(const sensor_msgs::msg::Image::SharedPtr msg0, int cam_id0) {
 
   // Check if we should drop this image
@@ -567,6 +722,10 @@ void ROS2Visualizer::callback_monocular(const sensor_msgs::msg::Image::SharedPtr
   camera_queue.push_back(message);
   std::sort(camera_queue.begin(), camera_queue.end());
 }
+
+//}
+
+/* callback_stereo() //{ */
 
 void ROS2Visualizer::callback_stereo(const sensor_msgs::msg::Image::ConstSharedPtr msg0, const sensor_msgs::msg::Image::ConstSharedPtr msg1,
                                      int cam_id0, int cam_id1) {
@@ -622,6 +781,10 @@ void ROS2Visualizer::callback_stereo(const sensor_msgs::msg::Image::ConstSharedP
   std::sort(camera_queue.begin(), camera_queue.end());
 }
 
+//}
+
+/* publish_state() //{ */
+
 void ROS2Visualizer::publish_state() {
 
   // Get the current state
@@ -654,6 +817,7 @@ void ROS2Visualizer::publish_state() {
       poseIinM.pose.covariance[6 * r + c] = covariance_posori(r, c);
     }
   }
+
   pub_poseimu->publish(poseIinM);
 
   //=========================================================
@@ -663,6 +827,7 @@ void ROS2Visualizer::publish_state() {
   geometry_msgs::msg::PoseStamped posetemp;
   posetemp.header = poseIinM.header;
   posetemp.pose = poseIinM.pose.pose;
+
   poses_imu.push_back(posetemp);
 
   // Create our path (imu)
@@ -674,8 +839,13 @@ void ROS2Visualizer::publish_state() {
   for (size_t i = 0; i < poses_imu.size(); i += std::floor((double)poses_imu.size() / 16384.0) + 1) {
     arrIMU.poses.push_back(poses_imu.at(i));
   }
+
   pub_pathimu->publish(arrIMU);
 }
+
+//}
+
+/* publish_images() //{ */
 
 void ROS2Visualizer::publish_images() {
 
@@ -704,6 +874,10 @@ void ROS2Visualizer::publish_images() {
   // Publish
   it_pub_tracks.publish(exl_msg);
 }
+
+//}
+
+/* publish_features() //{ */
 
 void ROS2Visualizer::publish_features() {
 
@@ -736,6 +910,10 @@ void ROS2Visualizer::publish_features() {
   sensor_msgs::msg::PointCloud2 cloud_SIM = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_sim);
   pub_points_sim->publish(cloud_SIM);
 }
+
+//}
+
+/* publish_groundtruth() //{ */
 
 void ROS2Visualizer::publish_groundtruth() {
 
@@ -863,6 +1041,10 @@ void ROS2Visualizer::publish_groundtruth() {
   //==========================================================================
   //==========================================================================
 }
+
+//}
+
+/* publish_loopclosure_information() //{ */
 
 void ROS2Visualizer::publish_loopclosure_information() {
 
@@ -1031,3 +1213,5 @@ void ROS2Visualizer::publish_loopclosure_information() {
     it_pub_loop_img_depth_color.publish(exl_msg2);
   }
 }
+
+//}

@@ -82,6 +82,11 @@ launch_args = [
         name="topic_namespace",
         default_value="vio_imu",
         description="entire topic name is constructed as '/<uav_name>/<topic_namespace>/<topic_name>', e.g. /uav1/vio_imu/imu_raw"
+    ),
+    DeclareLaunchArgument(
+        name="node_name",
+        default_value="open_vins",
+        description="node name",
     )
 ]
 
@@ -100,7 +105,7 @@ def launch_setup(context):
             get_package_share_directory("ov_msckf"),
             "config",config,"estimator_config.yaml"
         )
-    
+
         # else:
         #     return [
         #         LogInfo(
@@ -124,8 +129,8 @@ def launch_setup(context):
     msckf_node = ComposableNode(
         package="ov_msckf",
         plugin="msckf_component::SubscribeMSCKF",  # Update this with the actual component class name
-        name="open_vins",
-        namespace = LaunchConfiguration('uav_name'),
+        name=LaunchConfiguration('node_name'),
+        namespace=LaunchConfiguration('uav_name'),
         parameters=[
             {"verbosity": LaunchConfiguration("verbosity")},
             {"use_stereo": LaunchConfiguration("use_stereo")},
@@ -181,7 +186,7 @@ def launch_setup(context):
     
     # Create the component container
     container = ComposableNodeContainer(
-        name=LaunchConfiguration("container_name"),
+        name=[LaunchConfiguration("container_name"),"_",LaunchConfiguration("node_name")],
         namespace=LaunchConfiguration('uav_name'),
         package="rclcpp_components",
         executable="component_container",
@@ -192,24 +197,7 @@ def launch_setup(context):
         #prefix=['xterm -e gdb -ex run --args']
     )
 
-    # RViz node (remains as regular node)
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        condition=IfCondition(LaunchConfiguration("rviz_enable")),
-        arguments=[
-            "-d"
-            + os.path.join(
-                get_package_share_directory("ov_msckf"), "launch", "display_ros2.rviz"
-            ),
-            "--ros-args",
-            "--log-level",
-            "warn",
-        ],
-    )
-
-    return [parser, loader, container, rviz_node, filter]
-
+    return [parser, loader, container, filter]
 
 def generate_launch_description():
     opfunc = OpaqueFunction(function=launch_setup)
