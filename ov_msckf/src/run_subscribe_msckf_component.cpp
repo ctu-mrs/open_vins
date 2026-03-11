@@ -92,7 +92,7 @@ class SubscribeMSCKF : public rclcpp::Node {
             // Create our VIO system
             VioManagerOptions params;
             params.print_and_load(parser);
-            params.use_multi_threading_subs = true;
+            params.use_multi_threading_subs = false;
             sys = std::make_shared<VioManager>(params);
             viz = std::make_shared<ROS2Visualizer>(node, sys, nullptr, frames_prefix, global_frame_name, imu_frame_name, cam_frame_name);
             viz->setup_subscribers(parser);
