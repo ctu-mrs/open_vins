@@ -91,14 +91,26 @@ void VioManager::initialize_with_gt(Eigen::Matrix<double, 17, 1> imustate) {
   Cov_imu.block(6, 6, 3, 3) = std::pow(0.01, 2) * Eigen::Matrix3d::Identity();  // v uncertainty
   StateHelper::set_initial_covariance(state, Cov_imu, order);
 
-  // 7. FINALIZE: Set timestamps and clear tracker database
+  trackFEATS->get_feature_database()->cleanup(); // PURGE ALL TRACKS
+  if (trackARUCO != nullptr) trackARUCO->get_feature_database()->cleanup();
+
+  // 8. Finalize basic initialization flags
   state->_timestamp = imustate(0, 0);
   startup_time = imustate(0, 0);
   is_initialized_vio = true;
-  propagator->invalidate_cache();
-  
-  trackFEATS->get_feature_database()->cleanup(); // PURGE ALL TRACKS
-  if (trackARUCO != nullptr) trackARUCO->get_feature_database()->cleanup();
+
+  // 3. Clear SLAM features
+  state->_features_SLAM.clear();
+
+  // 6. SEED THE FIRST CLONE: Use StateHelper to properly augment covariance
+  // This replaces the manual map insertion that caused the diagonal errors
+  StateHelper::augment_clone(state, Eigen::Vector3d::Zero());
+
+  /* // 9. SEED THE FIRST CLONE (Prevents map::at crash) */
+  /* // We must clone the current IMU pose and add it to the clones map. */
+  /* // This gives the triangulation logic a pose for the current timestamp. */
+  /* std::shared_ptr<PoseJPL> init_pose = std::dynamic_pointer_cast<PoseJPL>(state->_imu->pose()->clone()); */
+  /* state->_clones_IMU[state->_timestamp] = init_pose; */
 
   PRINT_DEBUG(GREEN "[INIT]: DEEP RESET SUCCESSFUL. RESTARTED MID-AIR.\n" RESET);
 }
@@ -216,6 +228,12 @@ bool VioManager::try_to_initialize(const ov_core::CameraData &message) {
 }
 
 void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message) {
+
+  // SAFETY GUARD: Check if the required clone exists before calling .at()
+  if (state->_clones_IMU.find(message.timestamp) == state->_clones_IMU.end()) {
+    PRINT_WARNING(YELLOW "[RETRI]: Missing clone for timestamp %.4f. Skipping triangulation.\n" RESET, message.timestamp);
+    return;
+  }
 
   // Start timing
   boost::posix_time::ptime retri_rT1, retri_rT2, retri_rT3;

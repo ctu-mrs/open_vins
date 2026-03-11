@@ -328,6 +328,14 @@ void UpdaterSLAM::update(std::shared_ptr<State> state, std::vector<std::shared_p
     // Get our landmark from the state
     std::shared_ptr<Landmark> landmark = state->_features_SLAM.at((*it2)->featid);
 
+    // WITH THIS DEFENSIVE CHECK:
+    if (state->_features_SLAM.find((*it2)->featid) == state->_features_SLAM.end()) {
+        // This feature was labeled as SLAM by the tracker, but it's not in our state.
+        // This happens immediately after a mid-air reset.
+        it2 = feature_vec.erase(it2); // Remove it from the update list
+        continue;
+    }
+
     // Convert the state landmark into our current format
     UpdaterHelper::UpdaterHelperFeature feat;
     feat.featid = (*it2)->featid;

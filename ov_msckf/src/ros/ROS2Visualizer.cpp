@@ -125,6 +125,7 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   if (node->has_parameter("save_total_state")) {
     node->get_parameter<bool>("save_total_state", save_total_state);
   }
+
   if (save_total_state) {
 
     // files we will open
@@ -641,7 +642,9 @@ void ROS2Visualizer::callback_inertial(const sensor_msgs::msg::Imu::SharedPtr ms
   // The visualization of the state, images, and features will be synchronous with the update!
   if (thread_update_running)
     return;
+
   thread_update_running = true;
+
   std::thread thread([&] {
     // Lock on the queue (prevents new images from appending)
     std::lock_guard<std::mutex> lck(camera_queue_mtx);

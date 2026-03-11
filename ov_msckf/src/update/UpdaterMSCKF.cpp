@@ -61,6 +61,10 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
   if (feature_vec.empty())
     return;
 
+  if (state->_clones_IMU.size() == 0) {
+    return;
+  }
+
   // Start timing
   boost::posix_time::ptime rT0, rT1, rT2, rT3, rT4, rT5;
   rT0 = boost::posix_time::microsec_clock::local_time();
