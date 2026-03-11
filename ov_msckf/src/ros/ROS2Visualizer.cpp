@@ -217,8 +217,12 @@ bool ROS2Visualizer::callbackRestartFromGt([[maybe_unused]] const std::shared_pt
 
   Eigen::Matrix<double, 17, 1> state_vec;
 
-  for (int i = 0; i < 17; ++i) {
-    state_vec(i, 0) = gt_state_->data[i];
+  {
+    std::scoped_lock lock(mutex_gt_state_);
+
+    for (int i = 0; i < 17; ++i) {
+      state_vec(i, 0) = gt_state_->data[i];
+    }
   }
 
   // Force initialization
