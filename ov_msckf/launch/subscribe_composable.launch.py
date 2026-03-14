@@ -7,6 +7,7 @@ from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 import os
+import sys
 from mrs_lib.remappings_custom_config_parser import RemappingsCustomConfigParser
 
 launch_args = [
@@ -84,8 +85,8 @@ launch_args = [
         description="entire topic name is constructed as '/<uav_name>/<topic_namespace>/<topic_name>', e.g. /uav1/vio_imu/imu_raw"
     ),
     DeclareLaunchArgument(
-        name="node_name",
-        default_value="open_vins",
+        name="node_name_suffix",
+        default_value="",
         description="node name",
     )
 ]
@@ -129,7 +130,7 @@ def launch_setup(context):
     msckf_node = ComposableNode(
         package="ov_msckf",
         plugin="msckf_component::SubscribeMSCKF",  # Update this with the actual component class name
-        name=LaunchConfiguration('node_name'),
+        name=["open_vins", LaunchConfiguration('node_name_suffix')],
         namespace=LaunchConfiguration('uav_name'),
         parameters=[
             {"verbosity": LaunchConfiguration("verbosity")},
@@ -137,7 +138,7 @@ def launch_setup(context):
             {"max_cameras": LaunchConfiguration("max_cameras")},
             {"save_total_state": LaunchConfiguration("save_total_state")},
             {"use_sim_time": LaunchConfiguration('use_sim_time')},
-            {"frames_prefix": LaunchConfiguration('uav_name')},
+            {"frames_prefix": [LaunchConfiguration('uav_name'), LaunchConfiguration('node_name_suffix')]},
             {"global_frame_name": "global"},
             {"imu_frame_name": "imu"},
             {"cam_frame_name": "cam0"},
@@ -186,12 +187,13 @@ def launch_setup(context):
     
     # Create the component container
     container = ComposableNodeContainer(
-        name=[LaunchConfiguration("container_name"),"_",LaunchConfiguration("node_name")],
+        name=[LaunchConfiguration("container_name"), "_open_vins", LaunchConfiguration("node_name_suffix")],
         namespace=LaunchConfiguration('uav_name'),
         package="rclcpp_components",
         executable="component_container",
         condition=IfCondition(LaunchConfiguration("standalone")),
         composable_node_descriptions=[msckf_node],
+        # prefix=['debug_roslaunch ' + os.ttyname(sys.stdout.fileno())],
         output='screen',
         arguments=['--ros-args', '--log-level', 'info'],
         #prefix=['xterm -e gdb -ex run --args']

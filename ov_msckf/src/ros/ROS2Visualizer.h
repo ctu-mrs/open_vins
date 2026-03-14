@@ -154,6 +154,8 @@ protected:
   std::shared_ptr<rclcpp::Node> _node;
 
   /// Core application of the filter system
+  
+  std::mutex mutex_app_;
   std::shared_ptr<VioManager> _app;
 
   /// Simulator (is nullptr if we are not sim'ing)
