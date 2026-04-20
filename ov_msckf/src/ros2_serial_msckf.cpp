@@ -137,9 +137,13 @@ int main(int argc, char **argv) {
     std::string cam_topic_param = "topic_camera" + std::to_string(i);
     std::string cam_topic_default = "/cam" + std::to_string(i) + "/image_raw";
     node->declare_parameter(cam_topic_param, cam_topic_default);
-    std::string cam_topic = node->get_parameter(cam_topic_param).as_string();
+    std::string cam_topic = cam_topic_default;
     parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "rostopic", cam_topic);
-    cam_topic = "/uav1/bluefox/image_raw";
+    // ROS2 parameter takes precedence over config file if explicitly set
+    std::string cam_topic_param_val = node->get_parameter(cam_topic_param).as_string();
+    if (cam_topic_param_val != cam_topic_default) {
+      cam_topic = cam_topic_param_val;
+    }
     topic_cameras.emplace_back(cam_topic);
     PRINT_INFO("[SERIAL]: cam: %s\n", cam_topic.c_str());
   }

@@ -72,6 +72,10 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
   pub_pathgt = nh->advertise<nav_msgs::Path>("pathgt", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathgt.getTopic().c_str());
 
+  // MSCKF rejection rate publisher
+  pub_msckf_rejection_rate = nh->advertise<std_msgs::Float64>("msckf_rejection_rate", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_msckf_rejection_rate.getTopic().c_str());
+
   // Loop closure publishers
   pub_loop_pose = nh->advertise<nav_msgs::Odometry>("loop_pose", 2);
   pub_loop_point = nh->advertise<sensor_msgs::PointCloud>("loop_feats", 2);
@@ -646,6 +650,11 @@ void ROS1Visualizer::publish_state() {
 
   // Move them forward in time
   poses_seq_imu++;
+
+  // Publish MSCKF rejection rate
+  std_msgs::Float64 rejection_rate_msg;
+  rejection_rate_msg.data = _app->get_rejection_rate_MSCKF();
+  pub_msckf_rejection_rate.publish(rejection_rate_msg);
 }
 
 void ROS1Visualizer::publish_images() {

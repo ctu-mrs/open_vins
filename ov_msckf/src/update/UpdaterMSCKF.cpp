@@ -34,6 +34,7 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
+#include <limits>
 
 using namespace ov_core;
 using namespace ov_type;
@@ -166,6 +167,9 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
   size_t ct_meas = 0;
 
   // 4. Compute linear system for each feature, nullspace project, and reject
+  unsigned int rejection_count = 0;
+  unsigned int orig_feat_count = feature_vec.size();
+
   auto it2 = feature_vec.begin();
   while (it2 != feature_vec.end()) {
 
@@ -225,6 +229,7 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
     if (chi2 > _options.chi2_multipler * chi2_check) {
       (*it2)->to_delete = true;
       it2 = feature_vec.erase(it2);
+      rejection_count++;
       // PRINT_DEBUG("featid = %d\n", feat.featid);
       // PRINT_DEBUG("chi2 = %f > %f\n", chi2, _options.chi2_multipler*chi2_check);
       // std::stringstream ss;
@@ -256,6 +261,21 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
   }
   rT3 = boost::posix_time::microsec_clock::local_time();
 
+  // Update sliding-window rejection rate (guard against division by zero)
+  if (orig_feat_count > 0) {
+    double curr_frame_rejection_rate = static_cast<double>(rejection_count) / orig_feat_count;
+    _rejection_rate_history.push_back(curr_frame_rejection_rate);
+    if (_rejection_rate_history.size() > REJECTION_RATE_WINDOW)
+      _rejection_rate_history.pop_front();
+    double sum = 0.0;
+    for (double r : _rejection_rate_history)
+      sum += r;
+    _last_rejection_rate_sum = sum;
+    _last_rejection_rate = sum / _rejection_rate_history.size();
+  }
+  PRINT_INFO("[MSCKF-UP]: Rejection rate: %.1f%% avg over %zu frames (this frame: %u/%u rejected)\n", 100.0 * _last_rejection_rate,
+             _rejection_rate_history.size(), rejection_count, orig_feat_count);
+
   // We have appended all features to our Hx_big, res_big
   // Delete it so we do not reuse information
   for (size_t f = 0; f < feature_vec.size(); f++) {
@@ -277,6 +297,66 @@ void UpdaterMSCKF::update(std::shared_ptr<State> state, std::vector<std::shared_
     return;
   }
   rT4 = boost::posix_time::microsec_clock::local_time();
+
+  // Compute instantaneous observability metrics from the compressed measurement Jacobian.
+  //
+  // Column-normalize Hx_big before SVD to remove unit mismatch: H_x columns span positions,
+  // orientations, velocities, and biases whose physical scales differ by orders of magnitude.
+  // Without normalization, scale differences (not geometry) dominate the singular values and
+  // produce spurious extreme values. After normalization each state direction contributes
+  // equally, so the singular values reflect geometric conditioning only.
+  //
+  // Condition number κ is averaged as a geometric mean (via log-space accumulation) because
+  // it is a multiplicative quantity spanning orders of magnitude — arithmetic mean would be
+  // dominated by occasional large spikes. σ_min is averaged arithmetically.
+  {
+    // Column-normalize
+    Eigen::MatrixXd Hx_norm = Hx_big;
+    for (int i = 0; i < Hx_norm.cols(); i++) {
+      double col_norm = Hx_norm.col(i).norm();
+      if (col_norm > 1e-10)
+        Hx_norm.col(i) /= col_norm;
+    }
+
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(Hx_norm); // singular values sorted descending
+    const Eigen::VectorXd &sv = svd.singularValues();
+    double sigma_max = sv(0);
+    double sigma_min = sv(sv.size() - 1);
+    bool degenerate = (sigma_min <= 1e-6 * sigma_max);
+
+    // Condition number history in log-space; +inf marks degenerate frames
+    _hx_log_kappa_history.push_back(degenerate ? std::numeric_limits<double>::infinity()
+                                                : std::log(sigma_max / sigma_min));
+    if (_hx_log_kappa_history.size() > REJECTION_RATE_WINDOW)
+      _hx_log_kappa_history.pop_front();
+
+    // σ_min history in linear space
+    _hx_sigma_min_history.push_back(sigma_min);
+    if (_hx_sigma_min_history.size() > REJECTION_RATE_WINDOW)
+      _hx_sigma_min_history.pop_front();
+
+    // Windowed geometric mean of κ (degenerate/inf frames excluded from mean but noted)
+    double log_sum = 0.0;
+    int finite_count = 0;
+    for (double lk : _hx_log_kappa_history) {
+      if (std::isfinite(lk)) {
+        log_sum += lk;
+        finite_count++;
+      }
+    }
+    _last_hx_condition_number = (finite_count > 0) ? std::exp(log_sum / finite_count)
+                                                    : std::numeric_limits<double>::infinity();
+
+    // Windowed arithmetic mean of σ_min
+    double sigma_sum = 0.0;
+    for (double s : _hx_sigma_min_history)
+      sigma_sum += s;
+    _last_hx_sigma_min = sigma_sum / _hx_sigma_min_history.size();
+
+    PRINT_INFO("[MSCKF-UP]: Hx cond (windowed geom. mean): %.2e | sigma_min (windowed mean): %.2e | this frame: %s "
+               "(sigma_max=%.2e, sigma_min=%.2e)\n",
+               _last_hx_condition_number, _last_hx_sigma_min, degenerate ? "DEGENERATE" : "ok", sigma_max, sigma_min);
+  }
 
   // Our noise is isotropic, so make it here after our compression
   Eigen::MatrixXd R_big = _options.sigma_pix_sq * Eigen::MatrixXd::Identity(res_big.rows(), res_big.rows());

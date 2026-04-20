@@ -47,6 +47,12 @@ using namespace ov_core;
 using namespace ov_type;
 using namespace ov_msckf;
 
+double VioManager::get_rejection_rate_MSCKF() { return updaterMSCKF->get_rejection_rate(); }
+double VioManager::get_rejection_rate_sum_MSCKF() { return updaterMSCKF->get_rejection_rate_sum(); }
+size_t VioManager::get_rejection_rate_window_size_MSCKF() { return updaterMSCKF->get_rejection_rate_window_size(); }
+double VioManager::get_hx_condition_number_MSCKF() { return updaterMSCKF->get_hx_condition_number(); }
+double VioManager::get_hx_sigma_min_MSCKF() { return updaterMSCKF->get_hx_sigma_min(); }
+
 VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false), thread_init_success(false) {
 
   // Nice startup message

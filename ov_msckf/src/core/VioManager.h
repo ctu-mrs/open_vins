@@ -122,6 +122,21 @@ public:
   /// Returns 3d features used in the last update in global frame
   std::vector<Eigen::Vector3d> get_good_features_MSCKF() { return good_features_MSCKF; }
 
+  /// Returns the windowed-average chi2 rejection rate from the last MSCKF update (fraction in [0,1])
+  double get_rejection_rate_MSCKF();
+
+  /// Returns the sum of per-frame rejection rates within the current window
+  double get_rejection_rate_sum_MSCKF();
+
+  /// Returns the number of MSCKF updates currently in the sliding window
+  size_t get_rejection_rate_window_size_MSCKF();
+
+  /// Returns the condition number of the compressed H_x from the last MSCKF update (σ_max / σ_min)
+  double get_hx_condition_number_MSCKF();
+
+  /// Returns the minimum singular value of the compressed H_x from the last MSCKF update
+  double get_hx_sigma_min_MSCKF();
+
   /// Return the image used when projecting the active tracks
   void get_active_image(double &timestamp, cv::Mat &image) {
     timestamp = active_tracks_time;

@@ -23,6 +23,7 @@
 #define OV_MSCKF_UPDATER_MSCKF_H
 
 #include <Eigen/Eigen>
+#include <deque>
 #include <memory>
 
 #include "feat/FeatureInitializerOptions.h"
@@ -67,6 +68,25 @@ public:
    */
   void update(std::shared_ptr<State> state, std::vector<std::shared_ptr<ov_core::Feature>> &feature_vec);
 
+  /// Returns the windowed-average chi2 rejection rate (fraction in [0,1])
+  double get_rejection_rate() const { return _last_rejection_rate; }
+
+  /// Returns the sum of per-frame rejection rates within the current window
+  double get_rejection_rate_sum() const { return _last_rejection_rate_sum; }
+
+  /// Returns the number of MSCKF updates currently in the sliding window
+  size_t get_rejection_rate_window_size() const { return _rejection_rate_history.size(); }
+
+  /// Returns the condition number of the compressed measurement Jacobian from the last MSCKF update.
+  /// κ = σ_max / σ_min of the stacked H_x after null-space projection and QR compression.
+  /// Large κ indicates near-degeneracy (instantaneous unobservability); returns inf when σ_min ≈ 0.
+  double get_hx_condition_number() const { return _last_hx_condition_number; }
+
+  /// Returns the minimum singular value of the compressed H_x from the last MSCKF update.
+  /// Captures absolute measurement strength regardless of κ: both σ_max and σ_min can be small
+  /// (weak measurements overall) while κ still looks healthy.
+  double get_hx_sigma_min() const { return _last_hx_sigma_min; }
+
 protected:
   /// Options used during update
   UpdaterOptions _options;
@@ -76,6 +96,26 @@ protected:
 
   /// Chi squared 95th percentile table (lookup would be size of residual)
   std::map<int, double> chi_squared_table;
+
+  /// Sliding window of per-frame rejection rates (length <= REJECTION_RATE_WINDOW)
+  static constexpr size_t REJECTION_RATE_WINDOW = 20;
+  std::deque<double> _rejection_rate_history;
+
+  /// Windowed-average rejection rate, sum, exposed via getters above
+  double _last_rejection_rate = 0.0;
+  double _last_rejection_rate_sum = 0.0;
+
+  /// Sliding window of log(κ) for geometric-mean smoothing of the condition number.
+  /// Stores +inf for degenerate frames (σ_min ≈ 0).
+  std::deque<double> _hx_log_kappa_history;
+
+  /// Sliding window of per-frame σ_min values (column-normalized H_x) for arithmetic-mean smoothing.
+  std::deque<double> _hx_sigma_min_history;
+
+  /// Windowed geometric mean of the condition number and windowed arithmetic mean of σ_min,
+  /// exposed via getters above.
+  double _last_hx_condition_number = 1.0;
+  double _last_hx_sigma_min = 0.0;
 };
 
 } // namespace ov_msckf

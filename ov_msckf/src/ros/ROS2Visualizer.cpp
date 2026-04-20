@@ -89,6 +89,10 @@ ROS2Visualizer::ROS2Visualizer(
   pub_pathgt = node->create_publisher<nav_msgs::msg::Path>("~/pathgt_out", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathgt->get_topic_name());
 
+  // MSCKF rejection rate publisher
+  pub_msckf_rejection_rate = node->create_publisher<ov_msckf::msg::MsckfRejectionRate>("~/msckf_rejection_rate_out", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_msckf_rejection_rate->get_topic_name());
+
   // Loop closure publishers
   pub_loop_pose = node->create_publisher<nav_msgs::msg::Odometry>("~/loop_pose_out", 2);
   pub_loop_point = node->create_publisher<sensor_msgs::msg::PointCloud>("~/loop_feats_out", 2);
@@ -96,6 +100,11 @@ ROS2Visualizer::ROS2Visualizer(
   pub_loop_intrinsics = node->create_publisher<sensor_msgs::msg::CameraInfo>("~/loop_intrinsics_out", 2);
   it_pub_loop_img_depth = it.advertise("~/loop_depth", 2);
   it_pub_loop_img_depth_color = it.advertise("~/loop_depth_colored", 2);
+
+  // Minimum windowed rejection rate to trigger publishing (saves bandwidth when filter is healthy)
+  if (node->has_parameter("rejection_rate_publish_threshold")) {
+    node->get_parameter<double>("rejection_rate_publish_threshold", rejection_rate_publish_threshold);
+  }
 
   // option to enable publishing of global to IMU transformation
   if (node->has_parameter("publish_global_to_imu_tf")) {
@@ -675,6 +684,17 @@ void ROS2Visualizer::publish_state() {
     arrIMU.poses.push_back(poses_imu.at(i));
   }
   pub_pathimu->publish(arrIMU);
+
+  // Publish MSCKF quality metrics (rejection rate + instantaneous observability condition number)
+  if (_app->get_rejection_rate_MSCKF() >= rejection_rate_publish_threshold) {
+    ov_msckf::msg::MsckfRejectionRate rejection_rate_msg;
+    rejection_rate_msg.rejection_rate_avg = _app->get_rejection_rate_MSCKF();
+    rejection_rate_msg.rejection_rate_sum = _app->get_rejection_rate_sum_MSCKF();
+    rejection_rate_msg.window_size = static_cast<uint32_t>(_app->get_rejection_rate_window_size_MSCKF());
+    rejection_rate_msg.hx_condition_number = _app->get_hx_condition_number_MSCKF();
+    rejection_rate_msg.hx_sigma_min = _app->get_hx_sigma_min_MSCKF();
+    pub_msckf_rejection_rate->publish(rejection_rate_msg);
+  }
 }
 
 void ROS2Visualizer::publish_images() {

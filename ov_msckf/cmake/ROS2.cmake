@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.3)
 
 # Find ROS build system
 find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -23,6 +24,11 @@ if (NOT ENABLE_ROS)
     message(FATAL_ERROR "Build with ROS1.cmake if you don't have ROS.")
 endif ()
 add_definitions(-DROS_AVAILABLE=2)
+
+# Generate custom message types
+rosidl_generate_interfaces(${PROJECT_NAME}
+        "msg/MsckfRejectionRate.msg"
+)
 
 # Include our header files
 include_directories(
@@ -76,6 +82,8 @@ file(GLOB_RECURSE LIBRARY_HEADERS "src/*.h")
 add_library(ov_msckf_lib SHARED ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})
 ament_target_dependencies(ov_msckf_lib ${ament_libraries})
 target_link_libraries(ov_msckf_lib ${thirdparty_libraries})
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(ov_msckf_lib "${cpp_typesupport_target}")
 target_include_directories(ov_msckf_lib PUBLIC src/)
 install(TARGETS ov_msckf_lib
         LIBRARY DESTINATION lib
