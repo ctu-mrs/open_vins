@@ -52,6 +52,8 @@ double VioManager::get_rejection_rate_sum_MSCKF() { return updaterMSCKF->get_rej
 size_t VioManager::get_rejection_rate_window_size_MSCKF() { return updaterMSCKF->get_rejection_rate_window_size(); }
 double VioManager::get_hx_condition_number_MSCKF() { return updaterMSCKF->get_hx_condition_number(); }
 double VioManager::get_hx_sigma_min_MSCKF() { return updaterMSCKF->get_hx_sigma_min(); }
+double VioManager::get_null_space_leakage_MSCKF() { return updaterMSCKF->get_null_space_leakage(); }
+double VioManager::get_obs_condition_number_MSCKF() { return updaterMSCKF->get_obs_condition_number(); }
 
 VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false), thread_init_success(false) {
 

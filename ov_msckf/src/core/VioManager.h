@@ -137,6 +137,12 @@ public:
   /// Returns the minimum singular value of the compressed H_x from the last MSCKF update
   double get_hx_sigma_min_MSCKF();
 
+  /// Returns ||N^T P^{-1} N|| — structural null space leakage (should stay near zero)
+  double get_null_space_leakage_MSCKF();
+
+  /// Returns the condition number of N_⊥^T P^{-1} N_⊥ — observable subspace conditioning
+  double get_obs_condition_number_MSCKF();
+
   /// Return the image used when projecting the active tracks
   void get_active_image(double &timestamp, cv::Mat &image) {
     timestamp = active_tracks_time;

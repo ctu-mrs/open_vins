@@ -25,3 +25,15 @@ float64 hx_condition_number
 # both σ_max and σ_min can be small (weak measurements overall) while κ still looks healthy.
 # Near zero means the current geometry/motion barely excites the observable subspace.
 float64 hx_sigma_min
+
+# Structural null space leakage: Frobenius norm of N^T * P^{-1} * N (4×4 matrix).
+# N is the orthonormal basis for the 4 structurally unobservable directions (3 global
+# translations + global yaw).  For a consistent filter this stays near zero; it grows
+# when the filter falsely accumulates certainty about unobservable directions.
+float64 null_space_leakage
+
+# Observable subspace condition number: σ_max / σ_min of N_perp^T * P^{-1} * N_perp,
+# where N_perp is the Euclidean orthogonal complement of the structural null space.
+# Large values indicate some observable state directions are far better informed than
+# others (imbalanced information distribution across the observable subspace).
+float64 obs_condition_number

@@ -80,6 +80,9 @@ public:
    */
   int max_covariance_size() { return (int)_Cov.rows(); }
 
+  /// Read-only access to the full state covariance matrix.
+  const Eigen::MatrixXd &Cov() const { return _Cov; }
+
   /**
    * @brief Gyroscope and accelerometer intrinsic matrix (scale imperfection and axis misalignment)
    *

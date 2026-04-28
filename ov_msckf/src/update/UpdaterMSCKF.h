@@ -25,6 +25,7 @@
 #include <Eigen/Eigen>
 #include <deque>
 #include <memory>
+#include <vector>
 
 #include "feat/FeatureInitializerOptions.h"
 
@@ -34,6 +35,10 @@ namespace ov_core {
 class Feature;
 class FeatureInitializer;
 } // namespace ov_core
+
+namespace ov_type {
+class Type;
+} // namespace ov_type
 
 namespace ov_msckf {
 
@@ -87,7 +92,40 @@ public:
   /// (weak measurements overall) while κ still looks healthy.
   double get_hx_sigma_min() const { return _last_hx_sigma_min; }
 
+  /// Returns ||N^T P^{-1} N|| (Frobenius norm of the 4×4 null-space information matrix).
+  /// For a consistent filter this should remain near zero; it grows when the filter
+  /// falsely accumulates information about the structurally unobservable translation/yaw directions.
+  double get_null_space_leakage() const { return _last_null_space_leakage; }
+
+  /// Returns the condition number of N_⊥^T P^{-1} N_⊥ (observable-subspace information matrix).
+  /// Large values mean some observable state directions are poorly informed relative to others.
+  double get_obs_condition_number() const { return _last_obs_condition_number; }
+
 protected:
+  /// Updates the sliding-window chi2 rejection rate statistics.
+  void update_rejection_rate(unsigned int rejection_count, unsigned int orig_feat_count);
+
+  /// Computes the prior-weighted condition number and σ_min of the compressed H_x.
+  /// Updates _last_hx_condition_number and _last_hx_sigma_min.
+  void compute_hx_condition_number(const std::shared_ptr<State> &state, const Eigen::MatrixXd &Hx_big);
+
+  /// Development-only: computes the numerical null space of H_full via full SVD and
+  /// compares it against the analytical null space from compute_vio_nullspace.
+  void verify_nullspace_numerical(const std::shared_ptr<State> &state, const Eigen::MatrixXd &Hx_big,
+                                  const std::vector<std::shared_ptr<ov_type::Type>> &Hx_order_big);
+
+  /// Development-only: for the first accepted feature (done=false), embeds H_x before and
+  /// after nullspace_project_inplace into the full state space and prints ||H*N_ana||_F.
+  /// Sets done=true after the first call so subsequent calls return immediately.
+  void check_nullspace_projection_once(const std::shared_ptr<State> &state, const Eigen::MatrixXd &H_x_before,
+                                       const Eigen::MatrixXd &H_x_after,
+                                       const std::vector<std::shared_ptr<ov_type::Type>> &Hx_order, bool &done);
+
+  /// Computes structural (Type 1) null space metrics on the post-update covariance:
+  /// null-space leakage (N^T P^{-1} N) and observable-subspace condition number.
+  /// Updates _last_null_space_leakage and _last_obs_condition_number.
+  void compute_structural_nullspace_metrics(const std::shared_ptr<State> &state);
+
   /// Options used during update
   UpdaterOptions _options;
 
@@ -116,6 +154,13 @@ protected:
   /// exposed via getters above.
   double _last_hx_condition_number = 1.0;
   double _last_hx_sigma_min = 0.0;
+
+  /// Structural (Type 1) null space metrics — updated after each EKF update.
+  /// _null_space_leakage_baseline is captured on the first MSCKF update (<0 = not yet set).
+  /// _last_null_space_leakage is the ratio current/baseline; stays near 1.0 for a consistent filter.
+  double _null_space_leakage_baseline = -1.0;
+  double _last_null_space_leakage = 1.0;
+  double _last_obs_condition_number = 1.0;
 };
 
 } // namespace ov_msckf

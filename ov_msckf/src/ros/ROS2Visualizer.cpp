@@ -693,6 +693,8 @@ void ROS2Visualizer::publish_state() {
     rejection_rate_msg.window_size = static_cast<uint32_t>(_app->get_rejection_rate_window_size_MSCKF());
     rejection_rate_msg.hx_condition_number = _app->get_hx_condition_number_MSCKF();
     rejection_rate_msg.hx_sigma_min = _app->get_hx_sigma_min_MSCKF();
+    rejection_rate_msg.null_space_leakage = _app->get_null_space_leakage_MSCKF();
+    rejection_rate_msg.obs_condition_number = _app->get_obs_condition_number_MSCKF();
     pub_msckf_rejection_rate->publish(rejection_rate_msg);
   }
 }
